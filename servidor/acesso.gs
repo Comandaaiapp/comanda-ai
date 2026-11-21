@@ -1,15 +1,17 @@
 /**
  * Comanda Aí — controle de acesso por convite (grátis, no Google Planilhas).
  *
- * Como instalar (uma vez só, ~5 min):
- * 1. Crie uma planilha nova no Google Sheets (ex.: "Comanda Aí — Acessos").
- * 2. Menu Extensões → Apps Script. Apague o que estiver lá e cole este arquivo inteiro.
- * 3. Clique em Salvar (ícone de disquete).
+ * Como instalar (uma vez só, ~5 min — dá para fazer pelo celular):
+ * 1. Abra script.google.com (no celular: Safari → aA → "Solicitar site para computador").
+ * 2. Novo projeto. Apague o que estiver lá e cole este arquivo inteiro. Salve.
+ * 3. No topo, escolha a função "configurar" e toque em Executar. Autorize
+ *    (Avançado → Acessar projeto → Permitir). A planilha "Comanda Aí — Acessos" é criada no seu Drive.
  * 4. Implantar → Nova implantação → engrenagem → "App da Web".
  *      Executar como: Eu
  *      Quem pode acessar: Qualquer pessoa
- *    Clique em Implantar e autorize (Avançado → Acessar projeto, se aparecer aviso).
- * 5. Copie a "URL do app da Web" (termina em /exec) e mande para colocar no app.
+ * 5. Copie a "URL do app da Web" (termina em /exec) e coloque no app.
+ *
+ * (Também funciona colado em Extensões → Apps Script de uma planilha já existente.)
  *
  * Como funciona:
  * - Cada pedido de acesso vira uma linha na aba "Acessos" e você recebe um e-mail
@@ -23,8 +25,27 @@ const ABA = 'Acessos';
 const COLS = ['id', 'pedido_em', 'bar', 'nome', 'whatsapp', 'email', 'status', 'token', 'ultimo_acesso', 'aparelho'];
 const C = Object.fromEntries(COLS.map((c, i) => [c, i]));
 
+// Funciona colado dentro de uma planilha OU como projeto avulso em script.google.com:
+// no projeto avulso, a planilha "Comanda Aí — Acessos" é criada sozinha no seu Google Drive.
+function planilha_() {
+  const ativa = SpreadsheetApp.getActiveSpreadsheet();
+  if (ativa) return ativa;
+  const p = PropertiesService.getScriptProperties();
+  const id = p.getProperty('PLANILHA_ID');
+  if (id) { try { return SpreadsheetApp.openById(id); } catch (e) {} }
+  const nova = SpreadsheetApp.create('Comanda Aí — Acessos');
+  p.setProperty('PLANILHA_ID', nova.getId());
+  return nova;
+}
+
+// Rode esta função uma vez pelo botão "Executar" para autorizar e criar a planilha.
+function configurar() {
+  const ss = planilha_(); aba_(); chave_();
+  Logger.log('Planilha pronta: ' + ss.getUrl());
+}
+
 function aba_() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = planilha_();
   let sh = ss.getSheetByName(ABA);
   if (!sh) {
     sh = ss.insertSheet(ABA);
