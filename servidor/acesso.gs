@@ -14,15 +14,25 @@
  * (Também funciona colado em Extensões → Apps Script de uma planilha já existente.)
  *
  * Como funciona:
- * - Cada pedido de acesso vira uma linha na aba "Acessos" e você recebe um e-mail
- *   com os botões LIBERAR e RECUSAR.
- * - Para bloquear alguém depois, mude a coluna "status" para: bloqueado
- *   (ou use o link "Bloquear" do e-mail). Para liberar de novo: liberado
- * - A coluna "ultimo_acesso" mostra quando cada aparelho abriu o app pela última vez.
+ * - Cada pedido vira uma linha na aba "Acessos" e chega um e-mail com LIBERAR e RECUSAR.
+ * - Ao liberar, começa o teste grátis de 30 dias (coluna "vence_em", plano "teste").
+ * - Todo dia às 9h chega um e-mail com quem vence em até 3 dias, com o botão "Renovar +30 dias".
+ * - Quando vence, o app do bar mostra "teste terminou" (os dados dele continuam no celular).
+ * - Para renovar à mão: mude a data em "vence_em" (e o plano para "pago"). O app libera sozinho.
+ * - Para acesso sem prazo (ex.: o seu celular): deixe "vence_em" vazio.
+ * - Para bloquear: mude "status" para bloqueado. Para liberar de novo: liberado
+ * - "ultimo_acesso" mostra quando cada aparelho abriu o app pela última vez.
+ *
+ * Atualizar o servidor depois de colar uma versão nova deste arquivo:
+ *   Salvar → rodar "configurar" uma vez → Implantar → Gerenciar implantações → lápis ✏️ →
+ *   Versão: "Nova versão" → Implantar. (A URL /exec continua a mesma.)
  */
 
 const ABA = 'Acessos';
-const COLS = ['id', 'pedido_em', 'bar', 'nome', 'whatsapp', 'email', 'status', 'token', 'ultimo_acesso', 'aparelho'];
+const COLS = ['id', 'pedido_em', 'bar', 'nome', 'whatsapp', 'email', 'status', 'token', 'ultimo_acesso', 'aparelho', 'vence_em', 'plano'];
+const DIAS_TESTE = 30;        // teste grátis a partir da liberação
+const MAX_PEDIDOS_DIA = 30;   // acima disso no mesmo dia, o pedido é guardado mas não manda e-mail (proteção contra abuso)
+const DIA = 24 * 3600 * 1000;
 const C = Object.fromEntries(COLS.map((c, i) => [c, i]));
 
 // Funciona colado dentro de uma planilha OU como projeto avulso em script.google.com:
@@ -41,6 +51,9 @@ function planilha_() {
 // Rode esta função uma vez pelo botão "Executar" para autorizar e criar a planilha.
 function configurar() {
   const ss = planilha_(); aba_(); chave_();
+  // e-mail diário às 9h com quem vence nos próximos dias
+  if (!ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'resumoDiario'))
+    ScriptApp.newTrigger('resumoDiario').timeBased().everyDays(1).atHour(9).create();
   Logger.log('Planilha pronta: ' + ss.getUrl());
 }
 
@@ -52,6 +65,11 @@ function aba_() {
     sh.appendRow(COLS);
     sh.setFrozenRows(1);
     sh.getRange(1, 1, 1, COLS.length).setFontWeight('bold');
+  }
+  // planilhas criadas pela versão anterior ganham as colunas novas
+  if (sh.getLastColumn() < COLS.length) {
+    sh.getRange(1, 1, 1, COLS.length).setValues([COLS]).setFontWeight('bold');
+    sh.getRange(2, C.vence_em + 1, Math.max(sh.getMaxRows() - 1, 1), 1).setNumberFormat('dd/MM/yyyy');
   }
   return sh;
 }
@@ -88,24 +106,47 @@ function doGet(e) {
     const r = sh.getRange(row, 1, 1, COLS.length).getValues()[0];
     if (String(r[C.token]) !== String(p.token)) return json_({ status: 'desconhecido' });
     sh.getRange(row, C.ultimo_acesso + 1).setValue(new Date());
-    return json_({ status: String(r[C.status]).trim().toLowerCase() });
+    let status = String(r[C.status]).trim().toLowerCase();
+    const vence = r[C.vence_em] instanceof Date ? r[C.vence_em] : null;
+    // você renovou mudando só a data na planilha: volta a liberar sozinho
+    if (status === 'vencido' && vence && Date.now() <= fimDoDia_(vence)) {
+      status = 'liberado';
+      sh.getRange(row, C.status + 1).setValue('liberado');
+    }
+    if (status === 'liberado' && vence && Date.now() > fimDoDia_(vence)) {
+      status = 'vencido';
+      sh.getRange(row, C.status + 1).setValue('vencido');
+    }
+    const dias = vence ? Math.ceil((fimDoDia_(vence) - Date.now()) / DIA) : null;
+    return json_({ status, vence: vence ? vence.toISOString() : null, dias, plano: String(r[C.plano] || '') });
   }
   // 2) você clica em Liberar / Recusar / Bloquear no e-mail
-  const acoes = { liberar: 'liberado', recusar: 'recusado', bloquear: 'bloqueado' };
+  const acoes = { liberar: 'liberado', recusar: 'recusado', bloquear: 'bloqueado', renovar: 'liberado' };
   if (acoes[p.action]) {
     if (p.k !== chave_()) return pagina_('Link inválido', 'Este link não é válido.', '⛔');
     const row = acharLinha_(sh, p.id);
     if (row < 0) return pagina_('Pedido não encontrado', 'Ele pode ter sido apagado da planilha.', '❓');
     const r = sh.getRange(row, 1, 1, COLS.length).getValues()[0];
     sh.getRange(row, C.status + 1).setValue(acoes[p.action]);
+    // liberar: começa o teste grátis (se ainda não tem data). renovar: +30 dias a partir do vencimento (ou de hoje)
+    if (p.action === 'liberar' && !(r[C.vence_em] instanceof Date)) {
+      sh.getRange(row, C.vence_em + 1).setValue(new Date(Date.now() + DIAS_TESTE * DIA)).setNumberFormat('dd/MM/yyyy');
+      sh.getRange(row, C.plano + 1).setValue('teste');
+    }
+    if (p.action === 'renovar') {
+      const base = r[C.vence_em] instanceof Date && r[C.vence_em].getTime() > Date.now() ? r[C.vence_em].getTime() : Date.now();
+      sh.getRange(row, C.vence_em + 1).setValue(new Date(base + 30 * DIA)).setNumberFormat('dd/MM/yyyy');
+      sh.getRange(row, C.plano + 1).setValue('pago');
+    }
     if (p.action === 'liberar' && r[C.email]) {
       try {
         MailApp.sendEmail({ to: String(r[C.email]), name: 'Comanda Aí', subject: 'Seu acesso ao Comanda Aí foi liberado ✅',
-          htmlBody: `Olá, ${esc_(r[C.nome])}!<br><br>O acesso do <b>${esc_(r[C.bar])}</b> ao Comanda Aí foi liberado. É só abrir o app no mesmo celular em que você fez o pedido.<br><br>Boas vendas! 🍻` });
+          htmlBody: `Olá, ${esc_(r[C.nome])}!<br><br>O acesso do <b>${esc_(r[C.bar])}</b> ao Comanda Aí foi liberado, com <b>${DIAS_TESTE} dias de teste grátis</b>. É só abrir o app no mesmo celular em que você fez o pedido.<br><br>Boas vendas! 🍻` });
       } catch (err) {}
     }
     const msg = { liberar: ['Acesso liberado', `${esc_(r[C.nome])} (${esc_(r[C.bar])}) já pode usar o app.`, '✅'],
                   recusar: ['Pedido recusado', `${esc_(r[C.nome])} (${esc_(r[C.bar])}) não terá acesso.`, '🚫'],
+                  renovar: ['Renovado por 30 dias', `${esc_(r[C.nome])} (${esc_(r[C.bar])}) já pode continuar usando. O app atualiza sozinho.`, '💳'],
                   bloquear: ['Acesso bloqueado', `O app de ${esc_(r[C.nome])} (${esc_(r[C.bar])}) será bloqueado na próxima vez que abrir com internet.`, '🔒'] }[p.action];
     return pagina_(...msg);
   }
@@ -128,7 +169,9 @@ function doPost(e) {
     if (ant) return json_({ ok: true, id: String(ant[C.id]), token: String(ant[C.token]), status: 'pendente' });
 
     const id = Utilities.getUuid().slice(0, 8), token = Utilities.getUuid().replace(/-/g, '');
-    sh.appendRow([id, new Date(), bar, nome, whatsapp, email, 'pendente', token, '', aparelho]);
+    sh.appendRow([id, new Date(), bar, nome, whatsapp, email, 'pendente', token, '', aparelho, '', '']);
+    const hoje = dados.filter(r => r[C.pedido_em] instanceof Date && Date.now() - r[C.pedido_em].getTime() < DIA).length;
+    if (hoje >= MAX_PEDIDOS_DIA) return json_({ ok: true, id, token, status: 'pendente' }); // fica na planilha, sem e-mail
 
     const url = ScriptApp.getService().getUrl(), k = chave_();
     const link = a => `${url}?action=${a}&id=${id}&k=${k}`;
@@ -153,4 +196,29 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+function fimDoDia_(d) { const x = new Date(d); x.setHours(23, 59, 59, 999); return x.getTime(); }
+
+// Roda sozinho todo dia às 9h (criado pela função configurar): avisa quem vence em até 3 dias e quem já venceu.
+function resumoDiario() {
+  const sh = aba_();
+  if (sh.getLastRow() < 2) return;
+  const rows = sh.getRange(2, 1, sh.getLastRow() - 1, COLS.length).getValues();
+  const url = ScriptApp.getService().getUrl(), k = chave_();
+  const linha = r => {
+    const dias = Math.ceil((fimDoDia_(r[C.vence_em]) - Date.now()) / DIA);
+    const quando = dias < 0 ? `venceu há ${-dias} dia(s)` : dias === 0 ? 'vence hoje' : `vence em ${dias} dia(s)`;
+    return `<tr><td style="padding:6px 10px"><b>${esc_(r[C.bar])}</b><br><span style="color:#6b7280">${esc_(r[C.nome])} · ${esc_(r[C.whatsapp])} · ${esc_(r[C.plano] || '')}</span></td>
+      <td style="padding:6px 10px">${quando}</td>
+      <td style="padding:6px 10px"><a href="${url}?action=renovar&id=${r[C.id]}&k=${k}" style="background:#16a34a;color:#fff;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:700">Renovar +30 dias</a></td></tr>`;
+  };
+  const alvo = rows.filter(r => r[C.vence_em] instanceof Date && ['liberado', 'vencido'].includes(String(r[C.status]).trim().toLowerCase())
+    && (fimDoDia_(r[C.vence_em]) - Date.now()) / DIA <= 3 && (Date.now() - fimDoDia_(r[C.vence_em])) / DIA <= 7);
+  if (!alvo.length) return;
+  MailApp.sendEmail({ to: Session.getEffectiveUser().getEmail(), name: 'Comanda Aí',
+    subject: `⏰ Comanda Aí: ${alvo.length} acesso(s) vencendo ou vencidos`,
+    htmlBody: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px"><h2>Vencimentos</h2>
+      <p>Quando o bar pagar, toque em <b>Renovar +30 dias</b>. O app dele libera sozinho.</p>
+      <table style="border-collapse:collapse">${alvo.map(linha).join('')}</table></div>` });
 }

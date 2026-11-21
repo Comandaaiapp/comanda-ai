@@ -627,7 +627,46 @@ function renderCaixa(){
     ${vs.length?`<div class="glass list">${vs.map(v => `<button class="li" onclick="showVenda('${v.id}')"><span class="a">${v.tipo==='mesa'?'Mesa '+esc(v.nome):esc(v.nome)}<small>${fmtTime(v.abertaEm)} → ${fmtTime(v.fechadaEm)} · ${PAYL[v.pagamento]}</small></span><span class="b">${brl(v.total)}</span></button>`).join('')}</div>`
       :`<p class="note">Nenhuma conta fechada neste dia.</p>`}`:''}
     <p class="note" style="margin-top:18px">Quer ver este resumo do seu celular, de casa? Isso vem no <b>Comanda Aí Pro</b> (veja em Ajustes).</p>
+    <button class="btn btn-block" style="margin-top:14px;background:#25d366;color:#05260f" onclick="enviarWhats()"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.2-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.1 5.1 0 0 0 1.1 2.7 11.6 11.6 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.3 2.2 2.2 0 0 0 .2-1.3c-.1-.1-.3-.2-.6-.3z"/></svg>Enviar fechamento no WhatsApp</button>
     <div class="row" style="margin-top:10px"><button class="btn btn-ghost" onclick="exportCSV()">Exportar ${periodo==='dia'?'dia':'mês'} para Excel</button></div>`;
+}
+
+// Texto do fechamento (dia ou mês) para mandar ao dono pelo WhatsApp
+function textoFechamento(){
+  const vs = vendas.filter(v=>inPeriod(v.dia)), es = entradas.filter(e=>inPeriod(e.dia));
+  const tot = vs.reduce((s,v)=>s+v.total,0), gasto = es.reduce((s,e)=>s+e.valor,0);
+  const descs = vs.reduce((s,v)=>s+(v.desconto||0)+v.itens.reduce((a,i)=>a+(origOf(i)-i.preco)*i.qtd,0),0);
+  const taxa = vs.reduce((s,v)=>s+v.taxa,0);
+  const byPay = {}; vs.forEach(v => byPay[v.pagamento]=(byPay[v.pagamento]||0)+v.total);
+  const byProd = {}; vs.forEach(v => v.itens.forEach(i => { byProd[i.nome] = byProd[i.nome]||{q:0,v:0}; byProd[i.nome].q+=i.qtd; byProd[i.nome].v+=i.qtd*i.preco; }));
+  const top = Object.entries(byProd).sort((a,b)=>b[1].v-a[1].v).slice(0,5);
+  const hoje = periodo==='dia' && caixaDay===opDay(Date.now());
+  const abertas = hoje ? open.length : 0, abertoTot = hoje ? open.reduce((s,c)=>s+totalOf(c),0) : 0;
+  const L = [];
+  L.push(`*🍻 Fechamento ${periodo==='dia'?'do dia':'do mês'} — ${cfg.bar||'Meu Bar'}*`);
+  L.push(`📅 ${periodo==='dia' ? fmtDay(caixaDay) : fmtMonth(caixaDay)}`);
+  L.push('');
+  L.push(`💰 *Vendas (saídas):* ${brl(tot)}`);
+  L.push(`📦 *Compras (entradas):* ${brl(gasto)}`);
+  L.push(`${tot-gasto<0?'🔻':'✅'} *Resultado:* ${brl(tot-gasto)}`);
+  L.push('');
+  L.push(`🧾 Contas fechadas: ${vs.length} · Ticket médio: ${brl(vs.length?tot/vs.length:0)}`);
+  L.push('');
+  L.push('*Por forma de pagamento*');
+  [['credito','💳 Crédito'],['debito','💳 Débito'],['pix','⚡ Pix'],['dinheiro','💵 Dinheiro']].forEach(([k,n]) => L.push(`${n}: ${brl(byPay[k]||0)}`));
+  if(taxa) L.push(`➕ Taxa de serviço (incluída): ${brl(taxa)}`);
+  if(descs) L.push(`🏷️ Descontos concedidos: ${brl(descs)}`);
+  if(top.length){ L.push(''); L.push('*Mais vendidos*'); top.forEach(([n,o],i) => L.push(`${i+1}. ${n} — ${fmtQ(o.q)}× (${brl(o.v)})`)); }
+  if(es.length){ L.push(''); L.push('*Entradas*'); es.forEach(e => L.push(`• ${e.nome}${e.qtd?` (+${fmtQ(e.qtd)} ${un(P(e.pid))})`:''} — ${brl(e.valor)}`)); }
+  if(abertas){ L.push(''); L.push(`⚠️ Ainda abertas: ${abertas} comanda(s), ${brl(abertoTot)}`); }
+  L.push(''); L.push('_Enviado pelo Comanda Aí_');
+  return L.join('\n');
+}
+function enviarWhats(){
+  const num = String(cfg.whatsDono||'').replace(/\D/g,'');
+  const dest = num ? (num.length<=11 ? '55'+num : num) : '';
+  const url = `https://wa.me/${dest}?text=${encodeURIComponent(textoFechamento())}`;
+  const w = window.open(url, '_blank'); if(!w) location.href = url;
 }
 
 /* ================== Entradas (compras / despesas) ================== */
@@ -793,6 +832,7 @@ function renderAjustes(){
   $('ajustes-body').innerHTML = `
     <div class="glass" style="padding:16px;margin-bottom:16px">
       <label class="field"><span>Nome do bar</span><input class="inp" value="${esc(cfg.bar)}" onchange="cfg.bar=this.value;persist()"></label>
+      <label class="field"><span>WhatsApp do dono (recebe o fechamento)</span><input class="inp" type="tel" inputmode="tel" placeholder="(11) 99999-9999" value="${esc(cfg.whatsDono||'')}" onchange="cfg.whatsDono=this.value.trim();persist()"></label>
       <div class="row">
         <label class="field"><span>Nº de mesas</span><input class="inp" inputmode="numeric" value="${cfg.mesas}" onchange="cfg.mesas=Math.max(1,parseInt(this.value)||20);persist()"></label>
         <label class="field"><span>Taxa de serviço % (opcional)</span><input class="inp" inputmode="numeric" value="${cfg.taxa}" onchange="cfg.taxa=Math.max(0,Number(this.value)||0);persist()"></label>
@@ -800,6 +840,7 @@ function renderAjustes(){
       <label class="field"><span>Virada do dia (hora)</span><input class="inp" inputmode="numeric" value="${cfg.virada}" onchange="cfg.virada=Math.min(12,Math.max(0,parseInt(this.value)||0));persist()"></label>
       <p class="note" style="margin-bottom:0">Vendas antes desse horário contam no dia anterior (ex.: 6 → a madrugada de sábado entra no caixa de sexta).</p>
     </div>
+    ${ACESSO_URL && diasRestantes()!==null ? `<div class="glass" style="padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span><b>${acesso.plano==='pago'?'Plano ativo':'Teste grátis'}</b><small class="note" style="display:block;margin:2px 0 0">até ${new Date(acesso.vence).toLocaleDateString('pt-BR')}</small></span><span class="badge ${diasRestantes()<=5?'low':'ok'}" style="font-size:14px;padding:6px 10px">${Math.max(0,diasRestantes())} dia(s)</span></div>` : ''}
     <h2>Comanda Aí Pro <span class="badge" style="vertical-align:middle;background:var(--grad);color:#05060a">em breve</span></h2>
     <div class="glass pro" style="padding:16px">
       <p class="note" style="margin-top:0">Tudo desta versão continua grátis. O Pro é para quem quer acompanhar o bar de longe:</p>
@@ -852,6 +893,8 @@ function resetAll(){
 /* ================== Acesso por convite ================== */
 // URL do Apps Script (servidor/acesso.gs). Vazia = app aberto, sem pedido de acesso.
 const ACESSO_URL = 'https://script.google.com/macros/s/AKfycbzSFJ558_aB_x3v75fR8oDAqiTXjdPUg0WRGYwGLYsP-_QWsEPzqUS5Ab_gIaICGEQ/exec';
+// Seu WhatsApp para o bar falar com você quando o teste acabar (só números, com DDD). Vazio = esconde o botão.
+const CONTATO_WHATS = '';
 const KA = 'ca_acesso', GRACA = 7*24*3600e3; // sem internet, um aparelho liberado continua funcionando por 7 dias
 let acesso = load(KA, null) || {};
 if(!acesso.aparelho){ acesso.aparelho = uid()+uid(); save(KA, acesso); }
@@ -866,6 +909,11 @@ function gate(estado, erro){
       <p class="note" style="margin:10px 0 0"><span class="spin"></span>verificando…</p></div>
     <button class="btn btn-ghost btn-block" onclick="checarAcesso(true)">Verificar agora</button>
     <button class="btn btn-ghost btn-block" style="margin-top:10px;background:none;border:0;color:var(--muted)" onclick="novoPedido()">Corrigir dados e pedir de novo</button>`;
+  else if(estado==='vencido') html = `${topo}
+    <div class="glass card"><div class="big">⏰</div><b>Seu teste grátis terminou</b>
+      <p class="note" style="margin:8px 0 0">Esperamos que o Comanda Aí tenha ajudado no seu bar! Para continuar usando, fale com a gente. <b>Suas comandas, vendas e estoque continuam guardados neste celular</b> e voltam assim que for renovado.</p></div>
+    ${CONTATO_WHATS?`<a class="btn btn-block" style="background:#25d366;color:#05260f;text-decoration:none;margin-bottom:10px" href="https://wa.me/55${CONTATO_WHATS}?text=${encodeURIComponent('Oi! Quero continuar usando o Comanda Aí no '+(acesso.bar||'meu bar')+'.')}" target="_blank" rel="noopener">Falar no WhatsApp para continuar</a>`:''}
+    <button class="btn btn-ghost btn-block" onclick="checarAcesso(true)">Já renovei · verificar</button>`;
   else if(estado==='recusado' || estado==='bloqueado') html = `${topo}
     <div class="glass card"><div class="big">🔒</div><b>${estado==='bloqueado'?'Acesso suspenso':'Pedido não aprovado'}</b>
       <p class="note" style="margin:8px 0 0">${estado==='bloqueado'?'O acesso deste aparelho foi suspenso. Seus dados continuam guardados aqui e voltam quando o acesso for liberado.':'Fale com quem te passou o link.'}</p></div>
@@ -879,10 +927,15 @@ function gate(estado, erro){
       <label class="field"><span>E-mail (para o aviso de liberação)</span><input class="inp" id="ga-email" type="email" autocomplete="email" value="${esc(acesso.email||'')}"></label>
       ${erro?`<p class="note" style="color:var(--bad);margin-top:0">${esc(erro)}</p>`:''}
       <button class="btn btn-primary btn-block" id="ga-btn" type="submit">Solicitar acesso</button>
+      <p class="note" style="margin:12px 0 0;font-size:12px">Usamos estes dados só para liberar seu acesso e falar com você sobre o Comanda Aí. Ao liberar, você ganha 30 dias grátis.</p>
     </form>`;
   $('gate-in').innerHTML = html;
 }
 function liberar(){ $('gate').hidden = true; }
+const fimDia = t => { const d = new Date(t); d.setHours(23,59,59,999); return d.getTime(); };
+const diasRestantes = () => acesso.vence ? Math.ceil((fimDia(acesso.vence) - Date.now()) / 864e5) : null;
+let avisou = false;
+function avisoTeste(){ const d = diasRestantes(); if(!avisou && d !== null && d <= 5 && d >= 0){ avisou = true; toast(d===0 ? '⏰ Seu acesso termina hoje' : `⏰ Faltam ${d} dia(s) do seu acesso`); } if(page==='ajustes') renderAjustes(); }
 async function pedirAcesso(){
   const v = id => $(id).value.trim();
   Object.assign(acesso, {bar:v('ga-bar'), nome:v('ga-nome'), whatsapp:v('ga-whats'), email:v('ga-email')});
@@ -905,9 +958,10 @@ async function checarAcesso(manual){
     const r = await fetch(`${ACESSO_URL}?action=status&id=${encodeURIComponent(acesso.id)}&token=${encodeURIComponent(acesso.token)}`);
     const j = await r.json();
     acesso.status = j.status === 'desconhecido' ? 'novo' : j.status;
+    if('vence' in j){ acesso.vence = j.vence ? Date.parse(j.vence) : null; acesso.plano = j.plano || ''; }
     if(acesso.status === 'liberado') acesso.ok = Date.now();
     save(KA, acesso);
-    if(acesso.status === 'liberado'){ if(!$('gate').hidden){ liberar(); toast('✅ Acesso liberado. Bem-vindo!'); } }
+    if(acesso.status === 'liberado'){ if(!$('gate').hidden){ liberar(); toast('✅ Acesso liberado. Bem-vindo!'); } avisoTeste(); }
     else if(acesso.status === 'novo') novoPedido();
     else gate(acesso.status);
   }catch(e){ if(manual) toast('Sem conexão. Tente de novo em instantes.'); }
@@ -915,7 +969,8 @@ async function checarAcesso(manual){
 function iniciarAcesso(){
   if(!ACESSO_URL) return;
   // abre na hora se já foi liberado recentemente; a confirmação com o servidor vem em seguida
-  if(acesso.status === 'liberado' && Date.now() - (acesso.ok||0) < GRACA) liberar();
+  if(acesso.status === 'liberado' && acesso.vence && Date.now() > fimDia(acesso.vence)) gate('vencido'); // venceu, mesmo sem internet
+  else if(acesso.status === 'liberado' && Date.now() - (acesso.ok||0) < GRACA) liberar();
   else gate(acesso.id ? (acesso.status === 'liberado' ? 'pendente' : acesso.status || 'pendente') : 'novo');
   checarAcesso();
   setInterval(() => { if(!$('gate').hidden && acesso.status === 'pendente') checarAcesso(); }, 15000);
