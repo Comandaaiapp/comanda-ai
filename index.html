@@ -851,7 +851,7 @@ function resetAll(){
 
 /* ================== Acesso por convite ================== */
 // URL do Apps Script (servidor/acesso.gs). Vazia = app aberto, sem pedido de acesso.
-const ACESSO_URL = '';
+const ACESSO_URL = 'https://script.google.com/macros/s/AKfycbzSFJ558_aB_x3v75fR8oDAqiTXjdPUg0WRGYwGLYsP-_QWsEPzqUS5Ab_gIaICGEQ/exec';
 const KA = 'ca_acesso', GRACA = 7*24*3600e3; // sem internet, um aparelho liberado continua funcionando por 7 dias
 let acesso = load(KA, null) || {};
 if(!acesso.aparelho){ acesso.aparelho = uid()+uid(); save(KA, acesso); }
