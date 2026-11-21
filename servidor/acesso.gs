@@ -33,6 +33,18 @@ const COLS = ['id', 'pedido_em', 'bar', 'nome', 'whatsapp', 'email', 'status', '
 const DIAS_TESTE = 30;        // teste grátis a partir da liberação
 const MAX_PEDIDOS_DIA = 30;   // acima disso no mesmo dia, o pedido é guardado mas não manda e-mail (proteção contra abuso)
 const DIA = 24 * 3600 * 1000;
+const VERSAO = '2';
+
+// Lê a data da coluna vence_em mesmo se ela foi digitada como texto ("21/11/2026", "21/11/26", "2026-11-21").
+function dataDe_(v) {
+  if (v instanceof Date && !isNaN(v)) return v;
+  const t = String(v || '').trim();
+  let m = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})/);
+  if (m) { const y = +m[3] < 100 ? 2000 + +m[3] : +m[3]; return new Date(y, +m[2] - 1, +m[1]); }
+  m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  return null;
+}
 const C = Object.fromEntries(COLS.map((c, i) => [c, i]));
 
 // Funciona colado dentro de uma planilha OU como projeto avulso em script.google.com:
@@ -51,6 +63,7 @@ function planilha_() {
 // Rode esta função uma vez pelo botão "Executar" para autorizar e criar a planilha.
 function configurar() {
   const ss = planilha_(); aba_(); chave_();
+  ss.setSpreadsheetLocale('pt_BR'); ss.setSpreadsheetTimeZone('America/Sao_Paulo');
   // e-mail diário às 9h com quem vence nos próximos dias
   if (!ScriptApp.getProjectTriggers().some(t => t.getHandlerFunction() === 'resumoDiario'))
     ScriptApp.newTrigger('resumoDiario').timeBased().everyDays(1).atHour(9).create();
@@ -107,7 +120,7 @@ function doGet(e) {
     if (String(r[C.token]) !== String(p.token)) return json_({ status: 'desconhecido' });
     sh.getRange(row, C.ultimo_acesso + 1).setValue(new Date());
     let status = String(r[C.status]).trim().toLowerCase();
-    const vence = r[C.vence_em] instanceof Date ? r[C.vence_em] : null;
+    const vence = dataDe_(r[C.vence_em]);
     // você renovou mudando só a data na planilha: volta a liberar sozinho
     if (status === 'vencido' && vence && Date.now() <= fimDoDia_(vence)) {
       status = 'liberado';
@@ -129,12 +142,13 @@ function doGet(e) {
     const r = sh.getRange(row, 1, 1, COLS.length).getValues()[0];
     sh.getRange(row, C.status + 1).setValue(acoes[p.action]);
     // liberar: começa o teste grátis (se ainda não tem data). renovar: +30 dias a partir do vencimento (ou de hoje)
-    if (p.action === 'liberar' && !(r[C.vence_em] instanceof Date)) {
+    if (p.action === 'liberar' && !dataDe_(r[C.vence_em])) {
       sh.getRange(row, C.vence_em + 1).setValue(new Date(Date.now() + DIAS_TESTE * DIA)).setNumberFormat('dd/MM/yyyy');
       sh.getRange(row, C.plano + 1).setValue('teste');
     }
     if (p.action === 'renovar') {
-      const base = r[C.vence_em] instanceof Date && r[C.vence_em].getTime() > Date.now() ? r[C.vence_em].getTime() : Date.now();
+      const atual = dataDe_(r[C.vence_em]);
+      const base = atual && atual.getTime() > Date.now() ? atual.getTime() : Date.now();
       sh.getRange(row, C.vence_em + 1).setValue(new Date(base + 30 * DIA)).setNumberFormat('dd/MM/yyyy');
       sh.getRange(row, C.plano + 1).setValue('pago');
     }
@@ -150,7 +164,7 @@ function doGet(e) {
                   bloquear: ['Acesso bloqueado', `O app de ${esc_(r[C.nome])} (${esc_(r[C.bar])}) será bloqueado na próxima vez que abrir com internet.`, '🔒'] }[p.action];
     return pagina_(...msg);
   }
-  return json_({ ok: true, app: 'Comanda Aí — acessos' });
+  return json_({ ok: true, app: 'Comanda Aí — acessos', versao: VERSAO });
 }
 
 function doPost(e) {
@@ -207,14 +221,14 @@ function resumoDiario() {
   const rows = sh.getRange(2, 1, sh.getLastRow() - 1, COLS.length).getValues();
   const url = ScriptApp.getService().getUrl(), k = chave_();
   const linha = r => {
-    const dias = Math.ceil((fimDoDia_(r[C.vence_em]) - Date.now()) / DIA);
+    const dias = Math.ceil((fimDoDia_(dataDe_(r[C.vence_em])) - Date.now()) / DIA);
     const quando = dias < 0 ? `venceu há ${-dias} dia(s)` : dias === 0 ? 'vence hoje' : `vence em ${dias} dia(s)`;
     return `<tr><td style="padding:6px 10px"><b>${esc_(r[C.bar])}</b><br><span style="color:#6b7280">${esc_(r[C.nome])} · ${esc_(r[C.whatsapp])} · ${esc_(r[C.plano] || '')}</span></td>
       <td style="padding:6px 10px">${quando}</td>
       <td style="padding:6px 10px"><a href="${url}?action=renovar&id=${r[C.id]}&k=${k}" style="background:#16a34a;color:#fff;padding:8px 12px;border-radius:8px;text-decoration:none;font-weight:700">Renovar +30 dias</a></td></tr>`;
   };
-  const alvo = rows.filter(r => r[C.vence_em] instanceof Date && ['liberado', 'vencido'].includes(String(r[C.status]).trim().toLowerCase())
-    && (fimDoDia_(r[C.vence_em]) - Date.now()) / DIA <= 3 && (Date.now() - fimDoDia_(r[C.vence_em])) / DIA <= 7);
+  const alvo = rows.filter(r => dataDe_(r[C.vence_em]) && ['liberado', 'vencido'].includes(String(r[C.status]).trim().toLowerCase())
+    && (fimDoDia_(dataDe_(r[C.vence_em])) - Date.now()) / DIA <= 3 && (Date.now() - fimDoDia_(dataDe_(r[C.vence_em]))) / DIA <= 7);
   if (!alvo.length) return;
   MailApp.sendEmail({ to: Session.getEffectiveUser().getEmail(), name: 'Comanda Aí',
     subject: `⏰ Comanda Aí: ${alvo.length} acesso(s) vencendo ou vencidos`,
