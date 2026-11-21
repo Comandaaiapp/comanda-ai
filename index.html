@@ -319,7 +319,7 @@ const brl = v => (v||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const $ = id => document.getElementById(id);
 
-const CATS = ['Cervejas','Destilados','Drinks','Energéticos','Refrigerantes','Sucos','Águas','Narguilé','Insumos'];
+const CATS = ['Chopp','Cervejas','Destilados','Drinks','Energéticos','Refrigerantes','Sucos','Águas','Narguilé','Insumos'];
 const DEFAULT_PRODUCTS = [
   // id, nome, cat, preço, estoque, mínimo, baixa (insumos consumidos)
   ['heineken-ln','Heineken Long Neck','Cervejas',12,120,24],
@@ -349,9 +349,11 @@ const DEFAULT_PRODUCTS = [
   ['narguile','Narguilé (sessão)','Narguilé',50,null,null,[['carvao',3],['essencia',1]]],
   ['carvao-extra','Carvão extra','Narguilé',5,null,null,[['carvao',1]]],
   ['troca-essencia','Troca de essência','Narguilé',20,null,null,[['essencia',1]]],
+  ['chopp-500','Chopp 500ml','Chopp',13,null,null,[['chopp-l',0.5]]],
+  ['chopp-l','Chopp (litros) — barril','Insumos',0,50,10],
   ['carvao','Carvão (unid.)','Insumos',0,300,60],
   ['essencia','Essência (porção)','Insumos',0,80,15],
-].map(([id,nome,cat,preco,estoque,minimo,baixa]) => ({id,nome,cat,preco,estoque,minimo,baixa:(baixa||[]).map(([pid,qtd])=>({id:pid,qtd})),ativo:true}));
+].map(([id,nome,cat,preco,estoque,minimo,baixa]) => ({id,nome,cat,preco,estoque,minimo,baixa:(baixa||[]).map(([pid,qtd])=>({id:pid,qtd})),ativo:true,...(id==='chopp-l'?{unid:'L'}:{})}));
 
 let products = load(K.prod, null) || DEFAULT_PRODUCTS;
 let open = load(K.open, []);
@@ -359,9 +361,18 @@ let vendas = load(K.vendas, []);
 let queue = load(K.queue, []);
 let entradas = load(K.ent, []);
 let cfg = Object.assign({virada:6, taxa:10, mesas:20, url:'', bar:'Meu Bar'}, load(K.cfg, {}));
+if(!cfg.migChopp){ cfg.migChopp = true;
+  if(!products.some(p=>p.id==='chopp-l')) products.push({...DEFAULT_PRODUCTS.find(p=>p.id==='chopp-l'), estoque:0});
+  if(!products.some(p=>p.id==='chopp-500')) products.push(DEFAULT_PRODUCTS.find(p=>p.id==='chopp-500'));
+  try{ localStorage.setItem('ca_produtos', JSON.stringify(products)); localStorage.setItem('ca_cfg', JSON.stringify(cfg)); }catch(e){} }
 const persist = () => { save(K.prod, products); save(K.open, open); save(K.vendas, vendas); save(K.queue, queue); save(K.cfg, cfg); save(K.ent, entradas); };
 
 const P = id => products.find(p => p.id === id);
+// quantidades podem ser decimais (litros de chopp): "0,5" → 0.5
+const qty = v => { const n = Number(String(v??'').trim().replace(',','.')); return isNaN(n) ? 0 : n; };
+const fmtQ = n => (Math.round((n||0)*100)/100).toLocaleString('pt-BR');
+const un = p => p?.unid==='L' ? 'L' : 'un';
+const r3 = n => Math.round(n*1000)/1000;
 const sellable = () => products.filter(p => p.ativo && p.cat !== 'Insumos');
 // "1.234,56" / "12,5" / "R$ 10" → número (null se inválido)
 const money = str => { const t = String(str).replace(/\s|R\$/g,'').replace(/\.(?=\d{3}(\D|$))/g,'').replace(',','.'); if(t==='') return 0; const n = Number(t); return isNaN(n)||n<0 ? null : Math.round(n*100)/100; };
@@ -430,7 +441,7 @@ function createComanda(tipo, nome){
 }
 
 let current = null, cat = 'Cervejas';
-function openComanda(id){ current = open.find(c=>c.id===id); if(!current) return; cat = 'Cervejas'; renderComanda(); openSheet('sh-comanda'); }
+function openComanda(id){ current = open.find(c=>c.id===id); if(!current) return; cat = ''; renderComanda(); openSheet('sh-comanda'); }
 function renderComanda(){
   const c = current;
   $('cd-tipo').textContent = c.tipo==='mesa' ? 'Mesa · aberta às '+fmtTime(c.abertaEm) : 'Cliente · aberta às '+fmtTime(c.abertaEm);
@@ -537,7 +548,7 @@ function confirmClose(){
     if(p.estoque!=null) mov[p.id] = (mov[p.id]||0) + i.qtd;
     for(const b of p.baixa||[]) mov[b.id] = (mov[b.id]||0) + b.qtd*i.qtd;
   }
-  for(const [id,q] of Object.entries(mov)){ const p = P(id); if(p && p.estoque!=null) p.estoque -= q; }
+  for(const [id,q] of Object.entries(mov)){ const p = P(id); if(p && p.estoque!=null) p.estoque = r3(p.estoque - q); }
   const now = Date.now();
   const v = {id:current.id, tipo:current.tipo, nome:current.nome, abertaEm:current.abertaEm, fechadaEm:now, dia:opDay(now),
              itens:current.itens.map(i=>({...i})), subtotal:sub, taxa:tx, desconto:desc, total:sub+tx-desc, pagamento:pay, baixas:mov};
@@ -614,7 +625,7 @@ function renderEntradas(){
   $('entradas-body').innerHTML = `
     <div class="kpi hero glass" style="margin-bottom:12px"><div class="l">Total de entradas do dia</div><div class="v">${brl(tot)}</div>
       <div class="note" style="margin:6px 0 0">${es.length} registro(s). Compras de produtos já somam no estoque.</div></div>
-    ${es.length?`<div class="glass list">${es.map(e => `<button class="li" onclick="deleteEntrada('${e.id}')"><span class="a">${esc(e.nome)}${e.qtd?` <span class="badge">+${e.qtd} un</span>`:''}<small>${fmtTime(e.ts)} · ${e.pid?'estoque':'despesa'}${e.qtd?` · ${brl(e.valor/e.qtd)}/un`:''}${e.obs?' · '+esc(e.obs):''}</small></span><span class="b">${brl(e.valor)}</span></button>`).join('')}</div>
+    ${es.length?`<div class="glass list">${es.map(e => `<button class="li" onclick="deleteEntrada('${e.id}')"><span class="a">${esc(e.nome)}${e.qtd?` <span class="badge">+${fmtQ(e.qtd)} ${un(P(e.pid))}</span>`:''}<small>${fmtTime(e.ts)} · ${e.pid?'estoque':'despesa'}${e.qtd?` · ${brl(e.valor/e.qtd)}/${un(P(e.pid))}`:''}${e.obs?' · '+esc(e.obs):''}</small></span><span class="b">${brl(e.valor)}</span></button>`).join('')}</div>
       <p class="note">Toque em um registro para excluir (lançou errado).</p>`
     :`<div class="empty"><div class="big">📦</div><b>Nenhuma entrada neste dia</b><p class="note" style="text-align:center">Toque no <b>+</b> para registrar compra de bebidas, carvão, essência, gelo ou outra despesa.</p></div>`}`;
 }
@@ -635,9 +646,9 @@ function renderEnt(){
   $('ent-body').innerHTML = `
     <div class="seg"><button class="${e.tipo==='produto'?'on':''}" onclick="readEnt();ent.tipo='produto';renderEnt()">Produto / insumo</button><button class="${e.tipo==='despesa'?'on':''}" onclick="readEnt();ent.tipo='despesa';renderEnt()">Outra despesa</button></div>
     ${e.tipo==='produto' ? `
-      <label class="field"><span>O que chegou</span><select class="inp" id="ent-pid">${groups.map(k=>`<optgroup label="${k}">${stock.filter(p=>p.cat===k).map(p=>`<option value="${p.id}" ${p.id===e.pid?'selected':''}>${esc(p.nome)} (tem ${p.estoque})</option>`).join('')}</optgroup>`).join('')}</select></label>
-      <label class="field"><span>Quantidade (unidades)</span><input class="inp" id="ent-qtd" inputmode="numeric" placeholder="Ex.: 24" value="${esc(e.qtd)}"></label>
-      <div class="row" style="margin:-6px 0 14px">${[6,12,24,50,100].map(n=>`<button class="btn btn-ghost btn-sm" onclick="readEnt();ent.qtd=String((parseInt(ent.qtd)||0)+${n});renderEnt()">+${n}</button>`).join('')}</div>`
+      <label class="field"><span>O que chegou</span><select class="inp" id="ent-pid" onchange="readEnt();renderEnt()">${groups.map(k=>`<optgroup label="${k}">${stock.filter(p=>p.cat===k).map(p=>`<option value="${p.id}" ${p.id===e.pid?'selected':''}>${esc(p.nome)} (tem ${fmtQ(p.estoque)} ${un(p)})</option>`).join('')}</optgroup>`).join('')}</select></label>
+      <label class="field"><span>Quantidade (${un(P(e.pid))==='L'?'litros — barril de 50 L = 50':'unidades'})</span><input class="inp" id="ent-qtd" inputmode="decimal" placeholder="Ex.: ${un(P(e.pid))==='L'?'50':'24'}" value="${esc(e.qtd)}"></label>
+      <div class="row" style="margin:-6px 0 14px">${[6,12,24,50,100].map(n=>`<button class="btn btn-ghost btn-sm" onclick="readEnt();ent.qtd=String(qty(ent.qtd)+${n});renderEnt()">+${n}</button>`).join('')}</div>`
     : `
       <div class="chips" style="flex-wrap:wrap">${DESPESAS.map(d=>`<button class="chip ${e.nome===d?'on':''}" onclick="readEnt();ent.nome='${d}';renderEnt()">${d}</button>`).join('')}</div>
       <label class="field"><span>Descrição</span><input class="inp" id="ent-nome" placeholder="Ex.: Gelo 10 sacos" value="${esc(e.nome)}"></label>`}
@@ -653,11 +664,11 @@ function saveEntrada(){
   if(valor===null || valor<=0) return toast('Digite o valor pago');
   const reg = {id:uid(), ts:Date.now(), dia:e.dia, valor, obs:e.obs.trim()};
   if(e.tipo==='produto'){
-    const p = P(e.pid), q = parseInt(e.qtd);
+    const p = P(e.pid), q = r3(qty(e.qtd));
     if(!p) return toast('Escolha o produto');
     if(!(q>0)) return toast('Digite a quantidade');
     Object.assign(reg, {pid:p.id, nome:p.nome, qtd:q});
-    p.estoque = (p.estoque||0) + q;
+    p.estoque = r3((p.estoque||0) + q);
   } else {
     if(!e.nome.trim()) return toast('Descreva a despesa');
     reg.nome = e.nome.trim();
@@ -667,8 +678,8 @@ function saveEntrada(){
 }
 function deleteEntrada(id){
   const e = entradas.find(x=>x.id===id); if(!e) return;
-  if(!confirm(`Excluir "${e.nome}" (${brl(e.valor)})?${e.qtd?`\n${e.qtd} un. serão retiradas do estoque.`:''}`)) return;
-  if(e.pid){ const p = P(e.pid); if(p && p.estoque!=null) p.estoque -= e.qtd; }
+  if(!confirm(`Excluir "${e.nome}" (${brl(e.valor)})?${e.qtd?`\n${fmtQ(e.qtd)} ${un(P(e.pid))} serão retirados do estoque.`:''}`)) return;
+  if(e.pid){ const p = P(e.pid); if(p && p.estoque!=null) p.estoque = r3(p.estoque - e.qtd); }
   entradas = entradas.filter(x=>x!==e); persist(); renderEntradas(); toast('Entrada excluída');
 }
 function showVenda(id){
@@ -707,8 +718,8 @@ function renderEstoque(){
   list.sort((a,b)=>CATS.indexOf(a.cat)-CATS.indexOf(b.cat) || a.nome.localeCompare(b.nome));
   $('estoque-body').innerHTML = list.length ? `<div class="glass list">${list.map(p => {
     let badge;
-    if(p.estoque==null) badge = p.baixa?.length ? `<span class="badge">usa ${p.baixa.map(b=>b.qtd+'× '+esc(P(b.id)?.nome||b.id)).join(' + ')}</span>` : '<span class="badge">sem controle</span>';
-    else badge = `<span class="badge ${p.estoque<=0?'out':(p.minimo!=null&&p.estoque<=p.minimo?'low':'ok')}">${p.estoque} un</span>`;
+    if(p.estoque==null) badge = p.baixa?.length ? `<span class="badge">usa ${p.baixa.map(b=>fmtQ(b.qtd)+(un(P(b.id))==='L'?' L de ':'× ')+esc(P(b.id)?.nome||b.id)).join(' + ')}</span>` : '<span class="badge">sem controle</span>';
+    else badge = `<span class="badge ${p.estoque<=0?'out':(p.minimo!=null&&p.estoque<=p.minimo?'low':'ok')}">${fmtQ(p.estoque)} ${un(p)}</span>`;
     return `<div class="li" role="button" tabindex="0" style="cursor:pointer" onclick="editProduct('${p.id}')"><span class="a">${esc(p.nome)}${p.ativo?'':' <span class="badge">inativo</span>'}<small>${esc(p.cat)}${p.cat!=='Insumos'?' · '+brl(p.preco):''}</small></span><span class="b row" style="gap:10px;flex:0 0 auto">${badge}<button class="trash" aria-label="Excluir ${esc(p.nome)}" onclick="event.stopPropagation();removeProduct('${p.id}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></span></div>`;
   }).join('')}</div>` : `<div class="empty"><div class="big">✨</div>Nada por aqui.</div>`;
 }
@@ -725,15 +736,16 @@ function renderPE(){
     <label class="field"><span>Categoria</span><select class="inp" id="pe-cat">${CATS.map(k=>`<option ${k===e.cat?'selected':''}>${k}</option>`).join('')}</select></label>
     <div class="row"><label class="field"><span>Preço de venda (R$)</span><input class="inp" id="pe-preco" inputmode="decimal" value="${String(e.preco).replace('.',',')}"></label></div>
     <div class="toggle" onclick="syncPE();editing.estoque=editing.estoque==null?0:null;renderPE()">Controlar estoque deste item<span class="sw ${e.estoque!=null?'on':''}"></span></div>
+    ${e.estoque!=null?`<label class="field"><span>Contar em</span><select class="inp" id="pe-unid"><option value="un">Unidades</option><option value="L" ${e.unid==='L'?'selected':''}>Litros (chopp, barril)</option></select></label>`:''}
     ${e.estoque!=null?`<div class="row">
-      <label class="field"><span>Em estoque</span><input class="inp" id="pe-est" inputmode="numeric" value="${e.estoque}"></label>
-      <label class="field"><span>Alerta abaixo de</span><input class="inp" id="pe-min" inputmode="numeric" value="${e.minimo??''}"></label></div>
+      <label class="field"><span>Em estoque</span><input class="inp" id="pe-est" inputmode="decimal" value="${fmtQ(e.estoque)}"></label>
+      <label class="field"><span>Alerta abaixo de</span><input class="inp" id="pe-min" inputmode="decimal" value="${e.minimo==null?'':fmtQ(e.minimo)}"></label></div>
       <div class="row" style="margin-bottom:14px"><button class="btn btn-ghost btn-sm" onclick="addStock(6)">+6</button><button class="btn btn-ghost btn-sm" onclick="addStock(12)">+12</button><button class="btn btn-ghost btn-sm" onclick="addStock(24)">+24</button><button class="btn btn-ghost btn-sm" onclick="addStock(100)">+100</button></div>`:''}
     <div class="eyebrow" style="margin:8px 4px">Consome insumos (baixa automática)</div>
     <p class="note">Ex.: cada narguilé vendido desconta 3 carvões e 1 essência.</p>
     ${e.baixa.map((b,i)=>`<div class="row" style="margin-bottom:8px">
         <select class="inp" onchange="editing.baixa[${i}].id=this.value">${ins.map(p=>`<option value="${p.id}" ${p.id===b.id?'selected':''}>${esc(p.nome)}</option>`).join('')}</select>
-        <input class="inp" style="flex:0 0 80px" inputmode="numeric" value="${b.qtd}" onchange="editing.baixa[${i}].qtd=Number(this.value)||1">
+        <input class="inp" style="flex:0 0 80px" inputmode="decimal" value="${fmtQ(b.qtd)}" onchange="editing.baixa[${i}].qtd=qty(this.value)||1">
         <button class="btn btn-danger btn-sm" style="flex:0 0 auto" onclick="syncPE();editing.baixa.splice(${i},1);renderPE()">✕</button></div>`).join('')}
     ${ins.length?`<button class="btn btn-ghost btn-sm" onclick="syncPE();editing.baixa.push({id:'${ins[0].id}',qtd:1});renderPE()">+ Adicionar insumo</button>`:'<p class="note">Cadastre itens na categoria “Insumos” (ex.: carvão) para usar aqui.</p>'}
     <div class="toggle" style="margin-top:16px" onclick="syncPE();editing.ativo=!editing.ativo;renderPE()">Ativo (aparece no cardápio)<span class="sw ${e.ativo?'on':''}"></span></div>
@@ -743,7 +755,7 @@ function syncPE(){ // lê os inputs para o objeto antes de re-renderizar
   const e = editing; if(!$('pe-nome')) return;
   e.nome = $('pe-nome').value.trim(); e.cat = $('pe-cat').value;
   e.preco = Number(String($('pe-preco').value).replace(',','.'))||0;
-  if(e.estoque!=null && $('pe-est')){ e.estoque = parseInt($('pe-est').value)||0; const m=$('pe-min').value; e.minimo = m===''?null:parseInt(m); }
+  if(e.estoque!=null && $('pe-est')){ e.estoque = r3(qty($('pe-est').value.replace(/\.(?=\d{3})/g,''))); const m=$('pe-min').value; e.minimo = m===''?null:qty(m); e.unid = $('pe-unid')?.value==='L' ? 'L' : undefined; }
 }
 function addStock(n){ syncPE(); editing.estoque += n; renderPE(); }
 function saveProduct(){
@@ -793,7 +805,7 @@ function renderAjustes(){
       <input type="file" id="restore-file" accept=".json,application/json" hidden onchange="restore(this.files[0])">
       <button class="btn btn-danger btn-block" style="margin-top:10px" onclick="resetAll()">Apagar tudo e recomeçar</button>
     </div>
-    <p class="note" style="text-align:center;margin-top:24px">Comanda Aí · versão gratuita 0.4</p>`;
+    <p class="note" style="text-align:center;margin-top:24px">Comanda Aí · versão gratuita 0.5</p>`;
 }
 async function backup(){
   const data = JSON.stringify({app:'comanda-ai', versao:3, em:new Date().toISOString(), products, open, vendas, entradas, cfg}, null, 2);
