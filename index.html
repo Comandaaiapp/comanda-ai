@@ -70,9 +70,9 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
 /* sheets */
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:30}
 .scrim.on{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:900px;max-height:94vh;z-index:40;background:rgba(18,20,30,.92);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);border:1px solid var(--stroke);border-bottom:0;border-radius:28px 28px 0 0;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.9,.25,1);display:flex;flex-direction:column}
+.sheet{position:fixed;left:0;right:0;bottom:0;margin:0 auto;max-width:900px;max-height:92vh;max-height:92dvh;z-index:40;background:rgba(18,20,30,.92);backdrop-filter:blur(30px) saturate(180%);-webkit-backdrop-filter:blur(30px) saturate(180%);border:1px solid var(--stroke);border-bottom:0;border-radius:28px 28px 0 0;transform:translateY(105%);transition:transform .32s cubic-bezier(.2,.9,.25,1);display:flex;flex-direction:column}
 .sheet.on{transform:none}
-.sheet.full{height:94vh}
+.sheet.full{height:92vh;height:92dvh}
 .grab{width:40px;height:5px;border-radius:3px;background:rgba(255,255,255,.25);margin:8px auto 4px;flex:none}
 .sh-head{padding:8px 18px 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex:none}
 .sh-head h3{font-size:22px;font-weight:800;letter-spacing:-.02em}
@@ -98,11 +98,14 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
 .prods{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px}
 .prod{padding:12px;border-radius:18px;background:rgba(255,255,255,.06);border:1px solid var(--stroke);text-align:left;min-height:86px;display:flex;flex-direction:column;justify-content:space-between;position:relative;transition:transform .1s,background .2s}
 .prod:active{transform:scale(.95);background:rgba(34,230,255,.14)}
-.prod b{font-size:15px;font-weight:700;line-height:1.15}
+.prod b{font-size:15px;font-weight:700;line-height:1.15;padding-right:44px}
 .prod .p{font-size:14px;color:var(--a1);font-weight:700;font-variant-numeric:tabular-nums}
 .prod .st{position:absolute;top:8px;right:10px;font-size:11px;color:var(--dim)}
 .prod .st.low{color:var(--warn)}
 .prod .st.out{color:var(--bad)}
+.prod{cursor:pointer;user-select:none;-webkit-user-select:none}
+.prod .minus{position:absolute;right:8px;bottom:8px;width:38px;height:38px;border-radius:12px;background:rgba(255,77,94,.16);border:1px solid rgba(255,77,94,.3);color:var(--bad);font-size:22px;font-weight:700;line-height:1}
+.prod .minus:active{transform:scale(.9)}
 .prod .q{position:absolute;top:-6px;right:-6px;min-width:24px;height:24px;border-radius:12px;background:var(--grad);color:#05060a;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 6px}
 .items{margin:0 0 16px}
 .item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--stroke)}
@@ -143,6 +146,8 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
 .li .b{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .bar{height:6px;border-radius:3px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--grad);border-radius:3px}
+.trash{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--bad);background:rgba(255,77,94,.1);flex:none}
+.trash:active{transform:scale(.9)}
 .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;background:rgba(255,255,255,.08);color:var(--muted)}
 .badge.low{background:rgba(255,176,32,.15);color:var(--warn)}
 .badge.out{background:rgba(255,77,94,.15);color:var(--bad)}
@@ -155,7 +160,7 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
 .sync-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dim);margin-right:6px}
 .sync-dot.ok{background:var(--ok);box-shadow:0 0 8px var(--ok)}
 .sync-dot.pend{background:var(--warn);box-shadow:0 0 8px var(--warn)}
-@media (min-width:700px){ .sheet{border-radius:28px;bottom:20px;max-height:88vh} .sheet.full{height:88vh} }
+@media (min-width:700px){ .sheet{border-radius:28px;bottom:20px;max-height:88dvh} .sheet.full{height:88dvh} }
 </style>
 </head>
 <body>
@@ -276,7 +281,7 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
   <div class="grab"></div>
   <div class="sh-head"><h3 id="pe-title">Produto</h3><button class="btn btn-ghost btn-sm" onclick="closeSheets()">Cancelar</button></div>
   <div class="sh-body" id="pe-body"></div>
-  <div class="sh-foot"><button class="btn btn-primary btn-block" onclick="saveProduct()">Salvar</button></div>
+  <div class="sh-foot row"><button class="btn btn-ghost" style="flex:0 0 auto" onclick="closeSheets()">Cancelar</button><button class="btn btn-primary" onclick="saveProduct()">Salvar</button></div>
 </div>
 
 <!-- Nova entrada -->
@@ -284,7 +289,7 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
   <div class="grab"></div>
   <div class="sh-head"><h3>Nova entrada</h3><button class="btn btn-ghost btn-sm" onclick="closeSheets()">Cancelar</button></div>
   <div class="sh-body" id="ent-body"></div>
-  <div class="sh-foot"><button class="btn btn-primary btn-block" onclick="saveEntrada()">Registrar entrada</button></div>
+  <div class="sh-foot row"><button class="btn btn-ghost" style="flex:0 0 auto" onclick="closeSheets()">Cancelar</button><button class="btn btn-primary" onclick="saveEntrada()">Registrar entrada</button></div>
 </div>
 
 <!-- Editar item da comanda -->
@@ -442,7 +447,7 @@ function renderComanda(){
     const q = c.itens.find(i=>i.pid===p.id)?.qtd;
     const av = available(p);
     const st = av===null ? '' : `<span class="st ${av<=0?'out':(p.minimo!=null&&av<=p.minimo?'low':'')}">${av} un</span>`;
-    return `<button class="prod" onclick="addItem('${p.id}',1)">${st}${q?`<span class="q">${q}</span>`:''}<b>${esc(p.nome)}</b><span class="p">${brl(p.preco)}</span></button>`;
+    return `<div class="prod" role="button" tabindex="0" onclick="addItem('${p.id}',1)">${st}${q?`<span class="q">${q}</span>`:''}<b>${esc(p.nome)}</b><span class="p">${brl(p.preco)}</span>${q?`<button class="minus" aria-label="Tirar um ${esc(p.nome)}" onclick="event.stopPropagation();addItem('${p.id}',-1)">−</button>`:''}</div>`;
   }).join('');
   $('cd-total').textContent = brl(totalOf(c));
 }
@@ -704,7 +709,7 @@ function renderEstoque(){
     let badge;
     if(p.estoque==null) badge = p.baixa?.length ? `<span class="badge">usa ${p.baixa.map(b=>b.qtd+'× '+esc(P(b.id)?.nome||b.id)).join(' + ')}</span>` : '<span class="badge">sem controle</span>';
     else badge = `<span class="badge ${p.estoque<=0?'out':(p.minimo!=null&&p.estoque<=p.minimo?'low':'ok')}">${p.estoque} un</span>`;
-    return `<button class="li" onclick="editProduct('${p.id}')"><span class="a">${esc(p.nome)}${p.ativo?'':' <span class="badge">inativo</span>'}<small>${esc(p.cat)}${p.cat!=='Insumos'?' · '+brl(p.preco):''}</small></span><span class="b">${badge}</span></button>`;
+    return `<div class="li" role="button" tabindex="0" style="cursor:pointer" onclick="editProduct('${p.id}')"><span class="a">${esc(p.nome)}${p.ativo?'':' <span class="badge">inativo</span>'}<small>${esc(p.cat)}${p.cat!=='Insumos'?' · '+brl(p.preco):''}</small></span><span class="b row" style="gap:10px;flex:0 0 auto">${badge}<button class="trash" aria-label="Excluir ${esc(p.nome)}" onclick="event.stopPropagation();removeProduct('${p.id}')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button></span></div>`;
   }).join('')}</div>` : `<div class="empty"><div class="big">✨</div>Nada por aqui.</div>`;
 }
 let editing = null;
@@ -748,11 +753,14 @@ function saveProduct(){
   else products[products.findIndex(p=>p.id===e.id)] = e;
   persist(); closeSheets(); renderEstoque(); toast('Produto salvo');
 }
-function deleteProduct(){
-  if(!confirm('Excluir '+editing.nome+'?')) return;
-  products = products.filter(p=>p.id!==editing.id); products.forEach(p=>p.baixa=(p.baixa||[]).filter(b=>b.id!==editing.id));
-  persist(); closeSheets(); renderEstoque();
+function removeProduct(id){
+  const p = P(id); if(!p) return false;
+  const usado = products.filter(x=>(x.baixa||[]).some(b=>b.id===id)).map(x=>x.nome);
+  if(!confirm(`Excluir "${p.nome}" do estoque?${usado.length?`\n\nEle deixa de ser descontado em: ${usado.join(', ')}.`:''}\n\nAs vendas e entradas já registradas continuam no histórico.`)) return false;
+  products = products.filter(x=>x.id!==id); products.forEach(x=>x.baixa=(x.baixa||[]).filter(b=>b.id!==id));
+  persist(); renderEstoque(); toast('"'+p.nome+'" excluído'); return true;
 }
+function deleteProduct(){ if(removeProduct(editing.id)) closeSheets(); }
 
 /* ================== Ajustes & dados ================== */
 function renderAjustes(){
@@ -785,7 +793,7 @@ function renderAjustes(){
       <input type="file" id="restore-file" accept=".json,application/json" hidden onchange="restore(this.files[0])">
       <button class="btn btn-danger btn-block" style="margin-top:10px" onclick="resetAll()">Apagar tudo e recomeçar</button>
     </div>
-    <p class="note" style="text-align:center;margin-top:24px">Comanda Aí · versão gratuita 0.3</p>`;
+    <p class="note" style="text-align:center;margin-top:24px">Comanda Aí · versão gratuita 0.4</p>`;
 }
 async function backup(){
   const data = JSON.stringify({app:'comanda-ai', versao:3, em:new Date().toISOString(), products, open, vendas, entradas, cfg}, null, 2);
