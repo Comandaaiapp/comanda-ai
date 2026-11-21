@@ -155,6 +155,17 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
 .date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:6px}
 .date-nav b{font-size:16px}
 .note{font-size:13px;color:var(--muted);line-height:1.5;margin:6px 4px 14px}
+.gate{position:fixed;inset:0;z-index:100;background:var(--bg);overflow-y:auto;padding:calc(var(--safe-t) + 40px) 20px calc(30px + var(--safe-b))}
+.gate::before{content:"";position:fixed;inset:-20%;z-index:-1;background:radial-gradient(40% 30% at 15% 10%,rgba(34,230,255,.18),transparent 70%),radial-gradient(35% 30% at 90% 20%,rgba(139,92,246,.2),transparent 70%),radial-gradient(40% 35% at 70% 100%,rgba(255,61,154,.12),transparent 70%)}
+.gate[hidden]{display:none}
+.gate-in{max-width:440px;margin:0 auto}
+.gate-logo{width:72px;height:72px;margin-bottom:18px}
+.gate h1{font-size:34px;margin:0 0 6px}
+.gate .lead{color:var(--muted);font-size:16px;line-height:1.5;margin-bottom:22px}
+.gate .card{padding:20px;margin-bottom:14px}
+.gate .big{font-size:48px;margin-bottom:6px}
+.spin{display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid var(--muted);border-top-color:var(--a1);animation:spin 1s linear infinite;vertical-align:-2px;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
 .toast{position:fixed;left:50%;top:calc(14px + var(--safe-t));transform:translate(-50%,-150%);z-index:60;padding:12px 18px;border-radius:16px;font-weight:600;font-size:15px;transition:transform .3s cubic-bezier(.2,.9,.25,1);max-width:90%;background:rgba(30,33,46,.95)}
 .toast.on{transform:translate(-50%,0)}
 .sync-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--dim);margin-right:6px}
@@ -308,6 +319,9 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
 </div>
 
 <div class="toast glass" id="toast"></div>
+
+<!-- Acesso por convite -->
+<div class="gate" id="gate" hidden><div class="gate-in" id="gate-in"></div></div>
 
 <script>
 /* ================== Estado & persistência ================== */
@@ -835,7 +849,82 @@ function resetAll(){
   Object.values(K).forEach(k=>localStorage.removeItem(k)); location.reload();
 }
 
+/* ================== Acesso por convite ================== */
+// URL do Apps Script (servidor/acesso.gs). Vazia = app aberto, sem pedido de acesso.
+const ACESSO_URL = '';
+const KA = 'ca_acesso', GRACA = 7*24*3600e3; // sem internet, um aparelho liberado continua funcionando por 7 dias
+let acesso = load(KA, null) || {};
+if(!acesso.aparelho){ acesso.aparelho = uid()+uid(); save(KA, acesso); }
+const LOGO = `<svg class="gate-logo" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#11131c"/><path d="M168 104h176v304l-44-30-44 30-44-30-44 30z" fill="none" stroke="url(#g)" stroke-width="30" stroke-linejoin="round"/><path d="M212 186h88M212 246h88M212 306h52" stroke="url(#g)" stroke-width="28" stroke-linecap="round"/></svg>`;
+function gate(estado, erro){
+  const g = $('gate'); g.hidden = false;
+  const topo = `${LOGO}<h1>Comanda Aí</h1>`;
+  let html;
+  if(estado==='pendente') html = `${topo}<p class="lead">Pedido enviado para <b>${esc(acesso.bar||'')}</b>.</p>
+    <div class="glass card"><div class="big">⏳</div><b>Aguardando liberação</b>
+      <p class="note" style="margin:8px 0 0">Assim que o acesso for liberado, este celular entra sozinho. Pode deixar o app aberto.</p>
+      <p class="note" style="margin:10px 0 0"><span class="spin"></span>verificando…</p></div>
+    <button class="btn btn-ghost btn-block" onclick="checarAcesso(true)">Verificar agora</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px;background:none;border:0;color:var(--muted)" onclick="novoPedido()">Corrigir dados e pedir de novo</button>`;
+  else if(estado==='recusado' || estado==='bloqueado') html = `${topo}
+    <div class="glass card"><div class="big">🔒</div><b>${estado==='bloqueado'?'Acesso suspenso':'Pedido não aprovado'}</b>
+      <p class="note" style="margin:8px 0 0">${estado==='bloqueado'?'O acesso deste aparelho foi suspenso. Seus dados continuam guardados aqui e voltam quando o acesso for liberado.':'Fale com quem te passou o link.'}</p></div>
+    <button class="btn btn-ghost btn-block" onclick="checarAcesso(true)">Verificar de novo</button>
+    <button class="btn btn-ghost btn-block" style="margin-top:10px" onclick="novoPedido()">Enviar novo pedido</button>`;
+  else html = `${topo}<p class="lead">O Comanda Aí é liberado por convite. Preencha e aguarde a liberação. Você recebe um aviso por e-mail.</p>
+    <form class="glass card" id="gate-form" onsubmit="event.preventDefault();pedirAcesso()">
+      <label class="field"><span>Nome do bar</span><input class="inp" id="ga-bar" autocomplete="organization" value="${esc(acesso.bar||'')}" required></label>
+      <label class="field"><span>Seu nome</span><input class="inp" id="ga-nome" autocomplete="name" value="${esc(acesso.nome||'')}" required></label>
+      <label class="field"><span>WhatsApp</span><input class="inp" id="ga-whats" type="tel" inputmode="tel" autocomplete="tel" placeholder="(11) 99999-9999" value="${esc(acesso.whatsapp||'')}" required></label>
+      <label class="field"><span>E-mail (para o aviso de liberação)</span><input class="inp" id="ga-email" type="email" autocomplete="email" value="${esc(acesso.email||'')}"></label>
+      ${erro?`<p class="note" style="color:var(--bad);margin-top:0">${esc(erro)}</p>`:''}
+      <button class="btn btn-primary btn-block" id="ga-btn" type="submit">Solicitar acesso</button>
+    </form>`;
+  $('gate-in').innerHTML = html;
+}
+function liberar(){ $('gate').hidden = true; }
+async function pedirAcesso(){
+  const v = id => $(id).value.trim();
+  Object.assign(acesso, {bar:v('ga-bar'), nome:v('ga-nome'), whatsapp:v('ga-whats'), email:v('ga-email')});
+  if(!acesso.bar || !acesso.nome || !acesso.whatsapp) return gate('novo', 'Preencha bar, nome e WhatsApp.');
+  const btn = $('ga-btn'); btn.disabled = true; btn.innerHTML = '<span class="spin"></span>Enviando…';
+  try{
+    const r = await fetch(ACESSO_URL, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({action:'solicitar', bar:acesso.bar, nome:acesso.nome, whatsapp:acesso.whatsapp, email:acesso.email, aparelho:acesso.aparelho})});
+    const j = await r.json();
+    if(!j.ok) throw new Error(j.error || 'erro');
+    Object.assign(acesso, {id:j.id, token:j.token, status:'pendente'}); save(KA, acesso);
+    gate('pendente');
+  }catch(e){ gate('novo', 'Não consegui enviar. Confira a internet e tente de novo.'); }
+}
+function novoPedido(){ delete acesso.id; delete acesso.token; acesso.status = 'novo'; save(KA, acesso); gate('novo'); }
+async function checarAcesso(manual){
+  if(!ACESSO_URL) return;
+  if(!acesso.id){ gate('novo'); return; }
+  try{
+    const r = await fetch(`${ACESSO_URL}?action=status&id=${encodeURIComponent(acesso.id)}&token=${encodeURIComponent(acesso.token)}`);
+    const j = await r.json();
+    acesso.status = j.status === 'desconhecido' ? 'novo' : j.status;
+    if(acesso.status === 'liberado') acesso.ok = Date.now();
+    save(KA, acesso);
+    if(acesso.status === 'liberado'){ if(!$('gate').hidden){ liberar(); toast('✅ Acesso liberado. Bem-vindo!'); } }
+    else if(acesso.status === 'novo') novoPedido();
+    else gate(acesso.status);
+  }catch(e){ if(manual) toast('Sem conexão. Tente de novo em instantes.'); }
+}
+function iniciarAcesso(){
+  if(!ACESSO_URL) return;
+  // abre na hora se já foi liberado recentemente; a confirmação com o servidor vem em seguida
+  if(acesso.status === 'liberado' && Date.now() - (acesso.ok||0) < GRACA) liberar();
+  else gate(acesso.id ? (acesso.status === 'liberado' ? 'pendente' : acesso.status || 'pendente') : 'novo');
+  checarAcesso();
+  setInterval(() => { if(!$('gate').hidden && acesso.status === 'pendente') checarAcesso(); }, 15000);
+  setInterval(() => checarAcesso(), 30*60e3);
+  document.addEventListener('visibilitychange', () => { if(!document.hidden) checarAcesso(); });
+}
+
 /* ================== Boot ================== */
+iniciarAcesso();
 render();
 setInterval(()=>{ if(page==='comandas' && !current) renderComandas(); }, 60000);
 // pede ao navegador para não apagar os dados sozinho (importante no iPhone)
