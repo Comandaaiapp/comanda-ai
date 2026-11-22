@@ -860,7 +860,7 @@ function renderAjustes(){
       <input type="file" id="restore-file" accept=".json,application/json" hidden onchange="restore(this.files[0])">
       <button class="btn btn-danger btn-block" style="margin-top:10px" onclick="resetAll()">Apagar tudo e recomeçar</button>
     </div>
-    <p class="note" style="text-align:center;margin-top:24px">Comanda Aí · versão gratuita 0.5</p>`;
+    <p class="note" style="text-align:center;margin-top:24px">Comanda Aí · versão gratuita 0.6${ACESSO_URL && acesso.id ? `<br>Código deste aparelho: <b style="color:var(--text);user-select:all">${esc(acesso.id)}</b> · ${esc(acesso.status||'')}` : ''}</p>`;
 }
 async function backup(){
   const data = JSON.stringify({app:'comanda-ai', versao:3, em:new Date().toISOString(), products, open, vendas, entradas, cfg}, null, 2);
