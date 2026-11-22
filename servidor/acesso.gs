@@ -33,7 +33,7 @@ const COLS = ['id', 'pedido_em', 'bar', 'nome', 'whatsapp', 'email', 'status', '
 const DIAS_TESTE = 30;        // teste grátis a partir da liberação
 const MAX_PEDIDOS_DIA = 30;   // acima disso no mesmo dia, o pedido é guardado mas não manda e-mail (proteção contra abuso)
 const DIA = 24 * 3600 * 1000;
-const VERSAO = '2';
+const VERSAO = '3';
 
 // Lê a data da coluna vence_em mesmo se ela foi digitada como texto ("21/11/2026", "21/11/26", "2026-11-21").
 function dataDe_(v) {
@@ -172,6 +172,7 @@ function doPost(e) {
   lock.waitLock(15000);
   try {
     const b = JSON.parse(e.postData.contents);
+    if (b.action === 'interesse') return json_(interesse_(b));
     if (b.action !== 'solicitar') return json_({ ok: false, error: 'ação desconhecida' });
     const campo = (v, n) => String(v || '').trim().slice(0, n);
     const bar = campo(b.bar, 80), nome = campo(b.nome, 80), whatsapp = campo(b.whatsapp, 30), email = campo(b.email, 120), aparelho = campo(b.aparelho, 60);
@@ -235,4 +236,42 @@ function resumoDiario() {
     htmlBody: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px"><h2>Vencimentos</h2>
       <p>Quando o bar pagar, toque em <b>Renovar +30 dias</b>. O app dele libera sozinho.</p>
       <table style="border-collapse:collapse">${alvo.map(linha).join('')}</table></div>` });
+}
+
+// Teste de interesse ("porta falsa"): o bar toca em "Quero isso" num recurso do Pro que ainda não existe.
+// Cada clique vira uma linha na aba "Interesse" e um e-mail para você.
+const COLS_INT = ['data', 'recurso', 'bar', 'nome', 'whatsapp', 'email', 'atendentes', 'pagaria', 'aparelho'];
+function interesse_(b) {
+  const campo = (v, n) => String(v || '').trim().slice(0, n);
+  const d = { recurso: campo(b.recurso, 60), bar: campo(b.bar, 80), nome: campo(b.nome, 80), whatsapp: campo(b.whatsapp, 30),
+              email: campo(b.email, 120), atendentes: campo(b.atendentes, 20), pagaria: campo(b.pagaria, 30), aparelho: campo(b.aparelho, 60) };
+  if (!d.recurso || !d.whatsapp) return { ok: false, error: 'Faltou o WhatsApp.' };
+  const ss = planilha_();
+  let sh = ss.getSheetByName('Interesse');
+  if (!sh) { sh = ss.insertSheet('Interesse'); sh.appendRow(COLS_INT); sh.setFrozenRows(1); sh.getRange(1, 1, 1, COLS_INT.length).setFontWeight('bold'); }
+  // mesmo aparelho e mesmo recurso no mesmo dia: atualiza em vez de duplicar, e não manda outro e-mail
+  const linhas = sh.getLastRow() > 1 ? sh.getRange(2, 1, sh.getLastRow() - 1, COLS_INT.length).getValues() : [];
+  const i = linhas.findIndex(r => r[8] === d.aparelho && r[1] === d.recurso && r[0] instanceof Date && Date.now() - r[0].getTime() < DIA);
+  const linha = [new Date(), d.recurso, d.bar, d.nome, d.whatsapp, d.email, d.atendentes, d.pagaria, d.aparelho];
+  if (i >= 0) { sh.getRange(i + 2, 1, 1, COLS_INT.length).setValues([linha]); return { ok: true }; }
+  sh.appendRow(linha);
+  const hoje = linhas.filter(r => r[0] instanceof Date && Date.now() - r[0].getTime() < DIA).length;
+  if (hoje < MAX_PEDIDOS_DIA) {
+    const zap = d.whatsapp.replace(/\D/g, '');
+    MailApp.sendEmail({ to: Session.getEffectiveUser().getEmail(), name: 'Comanda Aí',
+      subject: `💡 Interesse no Pro: ${d.recurso} — ${d.bar}`,
+      htmlBody: `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;font-size:15px">
+        <h2 style="margin:0 0 12px">Alguém quer um recurso do Pro!</h2>
+        <table cellpadding="6" style="border-collapse:collapse">
+          <tr><td><b>Recurso</b></td><td>${esc_(d.recurso)}</td></tr>
+          <tr><td><b>Bar</b></td><td>${esc_(d.bar)}</td></tr>
+          <tr><td><b>Nome</b></td><td>${esc_(d.nome)}</td></tr>
+          <tr><td><b>WhatsApp</b></td><td>${esc_(d.whatsapp)}</td></tr>
+          ${d.atendentes ? `<tr><td><b>Atendentes</b></td><td>${esc_(d.atendentes)}</td></tr>` : ''}
+          <tr><td><b>Pagaria</b></td><td>${esc_(d.pagaria) || '—'}</td></tr>
+        </table><br>
+        <a href="https://wa.me/${zap.length <= 11 ? '55' + zap : zap}" style="display:inline-block;padding:12px 22px;border-radius:12px;background:#25d366;color:#05260f;text-decoration:none;font-weight:700">Chamar no WhatsApp</a>
+        <p style="color:#6b7280;font-size:13px">Tudo fica na aba "Interesse" da planilha.</p></div>` });
+  }
+  return { ok: true };
 }
