@@ -122,6 +122,20 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
 .pay{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
 .pay button{height:64px;border-radius:18px;background:rgba(255,255,255,.07);border:1.5px solid var(--stroke);font-weight:700;font-size:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .pay button span{font-size:22px}
+.pay button.pend{grid-column:1/-1;height:54px;flex-direction:row;gap:10px;border-style:dashed}
+.pay button.pend.on{border-color:var(--warn);background:rgba(255,176,32,.12);box-shadow:0 0 0 3px rgba(255,176,32,.15)}
+.alerta{display:flex;gap:12px;align-items:flex-start;padding:14px;border-radius:16px;margin-bottom:14px;background:rgba(255,176,32,.1);border:1px solid rgba(255,176,32,.35)}
+.alerta.ok{background:rgba(48,217,122,.08);border-color:rgba(48,217,122,.35)}
+.alerta .tx{flex:1;font-size:15px;line-height:1.4}
+.alerta .tx small{display:block;color:var(--muted);font-size:13px}
+.qrbox{background:#fff;border-radius:18px;padding:14px;display:flex;justify-content:center;margin:0 auto 10px;width:max-content}
+.qrbox svg{width:210px;height:210px;display:block}
+.copia{font-family:ui-monospace,Menlo,monospace;font-size:11px;word-break:break-all;color:var(--muted);background:rgba(255,255,255,.05);border-radius:12px;padding:10px;margin-bottom:10px;user-select:all}
+.fiado-card{width:100%;display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:14px;text-align:left;border-color:rgba(255,176,32,.35)}
+.fiado-card .tx{flex:1}
+.fiado-card .tx small{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+.fiado-card .v{font-weight:800;color:var(--warn);font-variant-numeric:tabular-nums}
+.btn-zap{background:#25d366;color:#05260f}
 .pay button.on{border-color:var(--a1);background:rgba(34,230,255,.12);box-shadow:0 0 0 3px rgba(34,230,255,.15)}
 .row{display:flex;gap:10px;align-items:center}
 .row>*{flex:1}
@@ -187,6 +201,7 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
     <div class="seg" id="filter-seg">
       <button class="on" data-f="all">Todas</button><button data-f="mesa">Mesas</button><button data-f="pessoa">Nomes</button>
     </div>
+    <div id="fiados-card"></div>
     <div class="grid" id="comandas-grid"></div>
   </section>
 
@@ -268,6 +283,7 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
     </div>
   </div>
   <div class="sh-body">
+    <div id="cd-alerta"></div>
     <div class="items glass" style="padding:4px 14px" id="cd-items"></div>
     <div class="chips" id="cd-chips"></div>
     <div class="prods" id="cd-prods"></div>
@@ -281,12 +297,25 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
   </div>
 </div>
 
+<!-- Pendura Aí: lista e detalhe -->
+<div class="sheet" id="sh-fiados">
+  <div class="grab"></div>
+  <div class="sh-head"><h3>📝 Pendura Aí</h3><button class="btn btn-ghost btn-sm" onclick="closeSheets()">Fechar</button></div>
+  <div class="sh-body" id="fiados-body"></div>
+</div>
+<div class="sheet" id="sh-fiado">
+  <div class="grab"></div>
+  <div class="sh-head"><h3 id="fd-nome"></h3><button class="btn btn-ghost btn-sm" onclick="abrirFiados()">Voltar</button></div>
+  <div class="sh-body" id="fd-body"></div>
+  <div class="sh-foot" id="fd-foot"></div>
+</div>
+
 <!-- Fechar conta -->
 <div class="sheet" id="sh-close">
   <div class="grab"></div>
   <div class="sh-head"><h3>Fechar conta</h3><button class="btn btn-ghost btn-sm" onclick="backToComanda()">Voltar</button></div>
   <div class="sh-body" id="close-body"></div>
-  <div class="sh-foot"><button class="btn btn-primary btn-block" id="close-confirm" onclick="confirmClose()">Cobrado na maquininha ✓</button></div>
+  <div class="sh-foot"><button class="btn btn-zap btn-block" style="margin-bottom:10px" onclick="enviarConta()">💬 Mandar a conta no WhatsApp</button><button class="btn btn-primary btn-block" id="close-confirm" onclick="confirmClose()">Cobrado na maquininha ✓</button></div>
 </div>
 
 <!-- Produto -->
@@ -333,9 +362,10 @@ h2{font-size:20px;font-weight:700;letter-spacing:-.02em;margin:22px 0 10px}
 <!-- Acesso por convite -->
 <div class="gate" id="gate" hidden><div class="gate-in" id="gate-in"></div></div>
 
+<script src="qrcode.js"></script>
 <script>
 /* ================== Estado & persistência ================== */
-const K = {prod:'ca_produtos', open:'ca_abertas', vendas:'ca_vendas', cfg:'ca_cfg', queue:'ca_fila', ent:'ca_entradas'};
+const K = {prod:'ca_produtos', open:'ca_abertas', vendas:'ca_vendas', cfg:'ca_cfg', queue:'ca_fila', ent:'ca_entradas', fiado:'ca_fiados'};
 const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k)); return v ?? d; } catch(e){ return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){ toast('Não foi possível salvar no aparelho'); } };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
@@ -384,12 +414,13 @@ let open = load(K.open, []);
 let vendas = load(K.vendas, []);
 let queue = load(K.queue, []);
 let entradas = load(K.ent, []);
+let fiados = load(K.fiado, []);
 let cfg = Object.assign({virada:6, taxa:10, mesas:20, url:'', bar:'Meu Bar'}, load(K.cfg, {}));
 if(!cfg.migChopp){ cfg.migChopp = true;
   if(!products.some(p=>p.id==='chopp-l')) products.push({...DEFAULT_PRODUCTS.find(p=>p.id==='chopp-l'), estoque:0});
   if(!products.some(p=>p.id==='chopp-500')) products.push(DEFAULT_PRODUCTS.find(p=>p.id==='chopp-500'));
   try{ localStorage.setItem('ca_produtos', JSON.stringify(products)); localStorage.setItem('ca_cfg', JSON.stringify(cfg)); }catch(e){} }
-const persist = () => { save(K.prod, products); save(K.open, open); save(K.vendas, vendas); save(K.queue, queue); save(K.cfg, cfg); save(K.ent, entradas); };
+const persist = () => { save(K.prod, products); save(K.open, open); save(K.vendas, vendas); save(K.queue, queue); save(K.cfg, cfg); save(K.ent, entradas); save(K.fiado, fiados); };
 
 const P = id => products.find(p => p.id === id);
 // quantidades podem ser decimais (litros de chopp): "0,5" → 0.5
@@ -431,6 +462,8 @@ document.querySelectorAll('#filter-seg button').forEach(b => b.onclick = () => {
   filter = b.dataset.f; document.querySelectorAll('#filter-seg button').forEach(x=>x.classList.toggle('on',x===b)); renderComandas();
 });
 function renderComandas(){
+  const dv = devedores(), totF = dv.reduce((s,d)=>s+d.total,0);
+  $('fiados-card').innerHTML = dv.length ? `<button class="glass fiado-card" onclick="abrirFiados()"><span style="font-size:26px">📝</span><span class="tx"><b>Pendura Aí</b><small>${dv.length} cliente(s) com conta pendurada</small></span><span class="v">${brl(totF)}</span></button>` : '';
   $('today-lbl').textContent = 'Comandas · ' + fmtDay(opDay(Date.now())) + ' · ' + open.length + (open.length===1?' aberta':' abertas');
   const list = open.filter(c => filter==='all' || c.tipo===filter)
     .sort((a,b) => a.tipo!==b.tipo ? (a.tipo==='mesa'?-1:1) : a.tipo==='mesa' ? Number(a.nome)-Number(b.nome) : a.nome.localeCompare(b.nome));
@@ -470,6 +503,7 @@ function renderComanda(){
   const c = current;
   $('cd-tipo').textContent = c.tipo==='mesa' ? 'Mesa · aberta às '+fmtTime(c.abertaEm) : 'Cliente · aberta às '+fmtTime(c.abertaEm);
   $('cd-nome').textContent = c.tipo==='mesa' ? 'Mesa '+c.nome : c.nome;
+  $('cd-alerta').innerHTML = alertaFiado(c);
   $('cd-items').innerHTML = c.itens.length ? c.itens.map(i => `
     <div class="item"><button class="n" style="text-align:left" onclick="editItem('${i.pid}')">${esc(i.nome)}<small>${origOf(i)!==i.preco?`<s>${brl(origOf(i))}</s> `:''}<span style="color:${origOf(i)!==i.preco?'var(--warn)':'inherit'}">${brl(i.preco)} un.</span> · <span style="color:var(--a1)">editar</span></small></button>
       <div class="step"><button onclick="addItem('${i.pid}',-1)">−</button><span>${i.qtd}</span><button onclick="addItem('${i.pid}',1)">+</button></div>
@@ -535,18 +569,28 @@ function cancelComanda(){
 }
 
 /* ================== Fechar conta ================== */
-let pay = null, comTaxa = false, pessoas = 1, desconto = 0;
+let pay = null, comTaxa = false, pessoas = 1, desconto = 0, pend = {nome:'', zap:''};
 function openClose(){
   if(!current.itens.length) return toast('A comanda está vazia');
-  pay = null; comTaxa = false; pessoas = 1; desconto = 0; renderClose(); openSheet('sh-close');
+  pay = null; comTaxa = false; pessoas = 1; desconto = 0;
+  const d = current.tipo==='pessoa' ? devedorPorNome(current.nome) : null;
+  pend = {nome: current.tipo==='pessoa' ? current.nome : '', zap: d?.zap || ''};
+  renderClose(); openSheet('sh-close');
 }
 function backToComanda(){ openSheet('sh-comanda'); }
-function renderClose(){
+const fiadoSomado = c => (c.somarFiado||[]).map(id => fiados.find(f=>f.id===id)).filter(f => f && abertoDe(f) > 0);
+function totaisConta(){
   const sub = totalOf(current), tx = comTaxa ? Math.round(sub*cfg.taxa)/100 : 0, tot = Math.max(0, sub+tx-desconto);
+  const ant = fiadoSomado(current).reduce((s,f)=>s+abertoDe(f),0);
+  return {sub, tx, tot, ant, cobrar: tot + (pay==='pendura' ? 0 : ant)};
+}
+function renderClose(){
+  const {sub, tx, tot, ant, cobrar} = totaisConta();
   $('close-body').innerHTML = `
     <div class="glass list" style="margin-bottom:14px">
       <div class="li"><span class="a">${current.tipo==='mesa'?'Mesa '+esc(current.nome):esc(current.nome)}<small>${plural(current.itens.reduce((s,i)=>s+i.qtd,0))} · aberta há ${since(current.abertaEm)}</small></span><span class="b">${brl(sub)}</span></div>
       ${comTaxa?`<div class="li"><span class="a">Taxa de serviço (${cfg.taxa}%)</span><span class="b">${brl(tx)}</span></div>`:''}
+      ${ant?`<div class="li"><span class="a" style="color:var(--warn)">📝 Pendura anterior<small>${fiadoSomado(current).map(f=>fmtDia(f.dia)).join(', ')}${pay==='pendura'?' · continua pendurado':''}</small></span><span class="b" style="color:var(--warn)">${pay==='pendura'?'—':brl(ant)}</span></div>`:''}
     </div>
     ${cfg.taxa>0?`<div class="toggle" onclick="comTaxa=!comTaxa;renderClose()">Cobrar ${cfg.taxa}% de serviço<span class="sw ${comTaxa?'on':''}"></span></div>`:''}
     <div class="toggle">Dividir entre
@@ -554,16 +598,25 @@ function renderClose(){
     <div class="toggle" style="gap:10px">Desconto / abatimento
       <span class="row" style="flex:0 0 auto;gap:6px"><span style="color:var(--muted)">R$</span><input class="inp" style="width:110px;height:40px;text-align:right" inputmode="decimal" placeholder="0,00" value="${desconto?String(desconto.toFixed(2)).replace('.',','):''}" onchange="desconto=money(this.value)||0;renderClose()"></span></div>
     ${desconto?`<div class="li" style="padding:0 4px 10px"><span class="a" style="color:var(--warn)">Desconto aplicado</span><span class="b" style="color:var(--warn)">− ${brl(desconto)}</span></div>`:''}
-    <div class="total-row"><span class="lbl">${pessoas>1?`Total · ${brl(tot/pessoas)} por pessoa`:'Total a cobrar'}</span><span class="val">${brl(tot)}</span></div>
+    <div class="total-row"><span class="lbl">${pay==='pendura'?'Vai para o Pendura Aí':pessoas>1?`Total · ${brl(cobrar/pessoas)} por pessoa`:'Total a cobrar'}</span><span class="val">${brl(pay==='pendura'?tot:cobrar)}</span></div>
     <div class="eyebrow" style="margin:6px 4px 10px">Forma de pagamento</div>
     <div class="pay">
       ${[['credito','💳','Crédito'],['debito','💳','Débito'],['pix','⚡','Pix'],['dinheiro','💵','Dinheiro']].map(([k,ic,l]) =>
-        `<button class="${pay===k?'on':''}" onclick="pay='${k}';renderClose()"><span>${ic}</span>${l}</button>`).join('')}
-    </div>`;
+        `<button class="${pay===k?'on':''}" onclick="pay='${k}';renderClose();${k==='pix'?"setTimeout(()=>document.querySelector('#close-body .qrbox')?.scrollIntoView({block:'center',behavior:'smooth'}),60)":''}"><span>${ic}</span>${l}</button>`).join('')}
+      <button class="pend ${pay==='pendura'?'on':''}" onclick="pay='pendura';renderClose();setTimeout(()=>{const e=$('pd-nome');e.scrollIntoView({block:'center',behavior:'smooth'});if(!e.value)e.focus();},60)"><span>📝</span>Pendura Aí · paga depois</button>
+    </div>
+    ${pay==='pix' ? blocoPix(pessoas>1 ? cobrar/pessoas : cobrar, pessoas>1 ? `Pix de cada pessoa (${brl(cobrar/pessoas)})` : 'Pix para pagar agora') : ''}
+    ${pay==='pendura' ? `<div class="glass" style="padding:14px;margin-bottom:6px">
+      <label class="field"><span>Nome do cliente</span><input class="inp" id="pd-nome" value="${esc(pend.nome)}" placeholder="Ex.: João do mercadinho" oninput="pend.nome=this.value"></label>
+      <label class="field" style="margin-bottom:6px"><span>WhatsApp (para lembrar depois)</span><input class="inp" id="pd-zap" type="tel" inputmode="tel" value="${esc(pend.zap)}" placeholder="(11) 99999-9999" oninput="pend.zap=this.value"></label>
+      <p class="note" style="margin:6px 2px 0">A conta fica em aberto no nome dele. Quando ele voltar, o app avisa.</p></div>` : ''}`;
+  const txt = {credito:'Cobrado na maquininha ✓', debito:'Cobrado na maquininha ✓', pix:'Pix recebido ✓', dinheiro:'Dinheiro recebido ✓', pendura:'📝 Pendurar conta'};
+  $('close-confirm').textContent = txt[pay] || 'Escolha a forma de pagamento';
   $('close-confirm').style.opacity = pay ? 1 : .45;
 }
 function confirmClose(){
   if(!pay) return toast('Escolha a forma de pagamento');
+  if(pay==='pendura' && !String(pend.nome).trim()) return toast('Digite o nome de quem vai pendurar');
   const sub = totalOf(current), tx = comTaxa ? Math.round(sub*cfg.taxa)/100 : 0, desc = Math.min(desconto, sub+tx);
   // baixa de estoque: o próprio produto + insumos (ex.: narguilé → 3 carvões)
   const mov = {};
@@ -577,9 +630,142 @@ function confirmClose(){
   const v = {id:current.id, tipo:current.tipo, nome:current.nome, abertaEm:current.abertaEm, fechadaEm:now, dia:opDay(now),
              itens:current.itens.map(i=>({...i})), subtotal:sub, taxa:tx, desconto:desc, total:sub+tx-desc, pagamento:pay, baixas:mov};
   vendas.push(v);
+  if(pay==='pendura'){
+    fiados.push({id:uid(), nome:String(pend.nome).trim(), zap:String(pend.zap||'').trim(), criadoEm:now, dia:v.dia,
+                 origem: v.tipo==='mesa' ? 'Mesa '+v.nome : v.nome, vendaId:v.id, valor:v.total, pagamentos:[]});
+  } else {
+    // pendura anterior somado nesta conta: quitado com a mesma forma de pagamento
+    for(const f of fiadoSomado(current)) f.pagamentos.push({valor:abertoDe(f), forma:pay, ts:now, dia:v.dia});
+  }
   open = open.filter(c=>c!==current);
   persist(); haptic(); closeSheets();
-  toast('✅ Conta fechada · '+brl(v.total));
+  toast(pay==='pendura' ? '📝 Pendurado no nome de '+String(pend.nome).trim()+' · '+brl(v.total) : '✅ Conta fechada · '+brl(v.total));
+}
+
+/* ================== Pix (BR Code do Banco Central, gerado no aparelho) ================== */
+const semAcento = t => String(t||'').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Za-z0-9 .\-]/g,'').trim();
+function chavePix(){
+  const c = String(cfg.pixChave||'').trim(), t = cfg.pixTipo||'cel';
+  if(t==='cpf') return c.replace(/\D/g,'');
+  if(t==='cel'){ const d = c.replace(/\D/g,''); return '+' + (d.startsWith('55') && d.length>11 ? d : '55'+d); }
+  if(t==='email') return c.toLowerCase();
+  return c;
+}
+const pixOk = () => !!(cfg.pixChave && cfg.pixNome && cfg.pixCidade);
+function crc16(s){
+  let c = 0xFFFF;
+  for(const b of new TextEncoder().encode(s)){ c ^= b << 8; for(let i=0;i<8;i++) c = (c & 0x8000) ? ((c << 1) ^ 0x1021) & 0xFFFF : (c << 1) & 0xFFFF; }
+  return c.toString(16).toUpperCase().padStart(4,'0');
+}
+function pixCodigo(valor){
+  const f = (id, v) => id + String(v.length).padStart(2,'0') + v;
+  const p = f('00','01') + f('26', f('00','br.gov.bcb.pix') + f('01', chavePix())) + f('52','0000') + f('53','986')
+    + (valor > 0 ? f('54', valor.toFixed(2)) : '') + f('58','BR') + f('59', semAcento(cfg.pixNome).slice(0,25)) + f('60', semAcento(cfg.pixCidade).slice(0,15))
+    + f('62', f('05','***')) + '6304';
+  return p + crc16(p);
+}
+function qrSvg(texto){ try{ const q = qrcode(0,'M'); q.addData(texto); q.make(); return q.createSvgTag({cellSize:4, margin:0, scalable:true}); }catch(e){ return ''; } }
+function blocoPix(valor, titulo){
+  if(!pixOk()) return `<div class="alerta"><span style="font-size:22px">⚡</span><span class="tx">Cadastre o Pix do estabelecimento em <b>Ajustes</b> para mostrar o QR Code com o valor certo.</span></div>`;
+  const cod = pixCodigo(valor);
+  return `<div class="glass" style="padding:16px;margin-bottom:10px;text-align:center">
+    <div class="eyebrow" style="margin-bottom:10px">${titulo}</div>
+    <div class="qrbox">${qrSvg(cod)}</div>
+    <div class="copia">${cod}</div>
+    <button class="btn btn-ghost btn-sm" onclick="copiar('${cod}')">Copiar Pix copia e cola</button></div>`;
+}
+function copiar(t){ try{ navigator.clipboard.writeText(t).then(()=>toast('Copiado!'), ()=>toast('Segure o código para copiar')); }catch(e){ toast('Segure o código para copiar'); } }
+const zapLink = (num, texto) => { const d = String(num||'').replace(/\D/g,''); return `https://wa.me/${d ? (d.length<=11 ? '55'+d : d) : ''}?text=${encodeURIComponent(texto)}`; };
+function abrirZap(num, texto){ const u = zapLink(num, texto); const w = window.open(u, '_blank'); if(!w) location.href = u; }
+
+// Conta para o cliente (prévia antes de pagar ou recibo depois)
+function textoConta(){
+  const {tx, tot, ant, cobrar} = totaisConta(), c = current;
+  const L = [`*🍻 ${cfg.bar||'Meu Bar'}*`, `Conta ${c.tipo==='mesa' ? 'da Mesa '+c.nome : 'de '+c.nome}`, ''];
+  c.itens.forEach(i => L.push(`${fmtQ(i.qtd)}× ${i.nome} — ${brl(i.qtd*i.preco)}`));
+  if(tx) L.push(`Serviço (${cfg.taxa}%) — ${brl(tx)}`);
+  if(desconto) L.push(`Desconto — − ${brl(Math.min(desconto, tot+desconto))}`);
+  if(ant && pay!=='pendura') L.push(`📝 Pendura anterior — ${brl(ant)}`);
+  L.push('', `*Total: ${brl(pay==='pendura' ? tot : cobrar)}*`);
+  if(pessoas>1 && pay!=='pendura') L.push(`Dividido por ${pessoas}: *${brl(cobrar/pessoas)}* cada`);
+  if(pixOk() && pay!=='pendura'){ L.push('', `⚡ *Pix copia e cola* (${brl(pessoas>1 ? cobrar/pessoas : cobrar)}):`, pixCodigo(pessoas>1 ? cobrar/pessoas : cobrar)); }
+  if(pay==='pendura') L.push('', '📝 Conta pendurada. Obrigado pela confiança!');
+  else L.push('', 'Obrigado pela preferência! 🙏');
+  return L.join('\n');
+}
+function enviarConta(){ abrirZap(pay==='pendura' ? pend.zap : '', textoConta()); }
+
+/* ================== Pendura Aí (fiado) ================== */
+const abertoDe = f => Math.round((f.valor - (f.pagamentos||[]).reduce((s,p)=>s+p.valor,0))*100)/100;
+const chaveCli = (nome, zap) => { const d = String(zap||'').replace(/\D/g,''); return d ? 'z'+d.slice(-9) : 'n'+String(nome||'').trim().toLowerCase(); };
+const fmtDia = d => { const [y,m,dd] = d.split('-'); return dd+'/'+m; };
+function devedores(){
+  const g = {};
+  for(const f of fiados){
+    const a = abertoDe(f); if(a <= 0) continue;
+    const k = chaveCli(f.nome, f.zap);
+    g[k] = g[k] || {k, nome:f.nome, zap:f.zap, total:0, desde:f.criadoEm, itens:[]};
+    g[k].total = Math.round((g[k].total + a)*100)/100; g[k].desde = Math.min(g[k].desde, f.criadoEm); g[k].itens.push(f);
+    if(f.zap) g[k].zap = f.zap;
+  }
+  return Object.values(g).sort((a,b)=>a.desde-b.desde);
+}
+const devedorPorNome = nome => devedores().find(d => d.nome.trim().toLowerCase() === String(nome||'').trim().toLowerCase());
+function alertaFiado(c){
+  if(c.tipo!=='pessoa') return '';
+  const d = devedorPorNome(c.nome); if(!d) return '';
+  const somado = (c.somarFiado||[]).length > 0;
+  return somado
+    ? `<div class="alerta ok"><span style="font-size:22px">✓</span><span class="tx"><b>Pendura de ${brl(d.total)} vai junto nesta conta</b><small>Ao fechar, a conta antiga é quitada.</small></span><button class="btn btn-ghost btn-sm" onclick="current.somarFiado=[];persist();renderComanda()">Desfazer</button></div>`
+    : `<div class="alerta"><span style="font-size:22px">📝</span><span class="tx"><b>${esc(d.nome)} tem ${brl(d.total)} pendurado</b><small>desde ${new Date(d.desde).toLocaleDateString('pt-BR')} · ${d.itens.length} conta(s)</small></span><button class="btn btn-ghost btn-sm" style="flex:none" onclick="current.somarFiado=devedorPorNome(current.nome).itens.map(f=>f.id);persist();renderComanda()">Somar nesta conta</button></div>`;
+}
+function fiadoRecebido(){
+  const r = {total:0, por:{}};
+  fiados.forEach(f => (f.pagamentos||[]).forEach(p => { if(inPeriod(p.dia)){ r.total += p.valor; r.por[p.forma] = (r.por[p.forma]||0) + p.valor; } }));
+  return r;
+}
+function abrirFiados(){
+  const dv = devedores();
+  $('fiados-body').innerHTML = dv.length ? `
+    <div class="total-row"><span class="lbl">Total pendurado</span><span class="val">${brl(dv.reduce((s,d)=>s+d.total,0))}</span></div>
+    <div class="glass list">${dv.map(d => `<button class="li" onclick="abrirFiado('${d.k}')"><span class="a">${esc(d.nome)}<small>desde ${new Date(d.desde).toLocaleDateString('pt-BR')} · ${d.itens.length} conta(s)${d.zap?' · 📱':''}</small></span><span class="b" style="color:var(--warn)">${brl(d.total)}</span></button>`).join('')}</div>`
+    : `<div class="empty"><div class="big">🙌</div><b>Ninguém pendurado</b><p class="note" style="text-align:center">Quando alguém sair sem pagar, escolha "Pendura Aí" ao fechar a conta.</p></div>`;
+  openSheet('sh-fiados');
+}
+let fdSel = null, fdReceber = null;
+function abrirFiado(k){ fdSel = k; fdReceber = null; renderFiado(); openSheet('sh-fiado'); }
+function renderFiado(){
+  const d = devedores().find(x=>x.k===fdSel);
+  if(!d){ abrirFiados(); toast('🙌 Conta quitada!'); return; }
+  $('fd-nome').textContent = d.nome;
+  $('fd-body').innerHTML = `
+    <div class="total-row"><span class="lbl">Em aberto</span><span class="val">${brl(d.total)}</span></div>
+    <div class="glass list" style="margin-bottom:14px">${d.itens.map(f => `<div class="li"><span class="a">${fmtDia(f.dia)} · ${esc(f.origem)}<small>conta de ${brl(f.valor)}${f.pagamentos.length?' · já pagou '+brl(f.valor-abertoDe(f)):''}</small></span><span class="b">${brl(abertoDe(f))}</span></div>`).join('')}</div>
+    ${fdReceber ? `<div class="glass" style="padding:16px">
+      <label class="field"><span>Quanto ele está pagando? (R$)</span><input class="inp" id="fd-valor" inputmode="decimal" value="${String(fdReceber.valor.toFixed(2)).replace('.',',')}" style="font-size:24px;height:60px;font-weight:700" onchange="fdReceber.valor=money(this.value)||0;renderFiado()"></label>
+      <div class="chips" style="flex-wrap:wrap">${[['pix','⚡ Pix'],['dinheiro','💵 Dinheiro'],['debito','💳 Débito'],['credito','💳 Crédito']].map(([k,l]) => `<button class="chip ${fdReceber.forma===k?'on':''}" onclick="fdReceber.forma='${k}';renderFiado()">${l}</button>`).join('')}</div>
+      ${fdReceber.forma==='pix' ? blocoPix(fdReceber.valor, 'Pix de '+brl(fdReceber.valor)) : ''}
+      ${fdReceber.valor < d.total ? `<p class="note">Vai ficar faltando <b>${brl(d.total - fdReceber.valor)}</b>.</p>` : ''}
+    </div>` : `<p class="note">${d.zap ? 'O lembrete vai direto para o WhatsApp dele, com o Pix junto.' : 'Sem WhatsApp cadastrado: você escolhe o contato na hora.'}</p>`}`;
+  $('fd-foot').innerHTML = fdReceber
+    ? `<div class="row"><button class="btn btn-ghost" style="flex:0 0 auto" onclick="fdReceber=null;renderFiado()">Cancelar</button><button class="btn btn-primary" onclick="confirmarReceber()">Recebi ${brl(fdReceber.valor)}</button></div>`
+    : `<button class="btn btn-zap btn-block" style="margin-bottom:10px" onclick="cobrarFiado()">💬 Lembrar no WhatsApp</button><button class="btn btn-primary btn-block" onclick="fdReceber={valor:devedores().find(x=>x.k===fdSel).total, forma:'pix'};renderFiado()">Receber pagamento</button>`;
+}
+function confirmarReceber(){
+  const d = devedores().find(x=>x.k===fdSel); let resta = Math.min(fdReceber.valor, d.total);
+  if(!(resta > 0)) return toast('Digite o valor');
+  const now = Date.now(), dia = opDay(now);
+  for(const f of d.itens.sort((a,b)=>a.criadoEm-b.criadoEm)){ const a = abertoDe(f); if(resta <= 0) break; const v = Math.min(a, resta); f.pagamentos.push({valor:v, forma:fdReceber.forma, ts:now, dia}); resta = Math.round((resta - v)*100)/100; }
+  persist(); haptic(); toast('💰 Recebido ' + brl(fdReceber.valor)); fdReceber = null; renderFiado(); renderComandas();
+}
+function cobrarFiado(){
+  const d = devedores().find(x=>x.k===fdSel);
+  const L = [`Oi, ${d.nome.split(' ')[0]}! Tudo bem? 😊`, `Passando pra lembrar da sua conta no *${cfg.bar||'bar'}*:`, ''];
+  d.itens.forEach(f => L.push(`• ${fmtDia(f.dia)}: ${brl(abertoDe(f))}`));
+  L.push('', `*Total: ${brl(d.total)}*`);
+  if(pixOk()) L.push('', 'Se preferir, dá pra pagar pelo Pix copia e cola 👇', pixCodigo(d.total));
+  L.push('', 'Qualquer coisa, é só chamar. Obrigado! 🍻');
+  abrirZap(d.zap, L.join('\n'));
 }
 
 /* ================== Caixa ================== */
@@ -597,7 +783,7 @@ document.querySelectorAll('#periodo-seg button').forEach(b => b.onclick = () => 
 const inPeriod = dia => periodo==='dia' ? dia===caixaDay : dia.slice(0,7)===caixaDay.slice(0,7);
 const fmtMonth = s => { const [y,m] = s.split('-').map(Number); const t = new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); return t[0].toUpperCase()+t.slice(1); };
 const dayLabel = () => fmtDay(caixaDay) + (caixaDay===opDay(Date.now())?' · hoje':'');
-const PAYL = {credito:'Crédito', debito:'Débito', pix:'Pix', dinheiro:'Dinheiro'};
+const PAYL = {credito:'Crédito', debito:'Débito', pix:'Pix', dinheiro:'Dinheiro', pendura:'📝 Pendurado'};
 function renderCaixa(){
   $('caixa-date').textContent = periodo==='dia' ? dayLabel() : fmtMonth(caixaDay);
   const vs = vendas.filter(v=>inPeriod(v.dia)).sort((a,b)=>b.fechadaEm-a.fechadaEm);
@@ -605,6 +791,7 @@ function renderCaixa(){
   const tot = vs.reduce((s,v)=>s+v.total,0), gasto = es.reduce((s,e)=>s+e.valor,0), res = tot-gasto;
   const taxa = vs.reduce((s,v)=>s+v.taxa,0), descs = vs.reduce((s,v)=>s+(v.desconto||0)+v.itens.reduce((a,i)=>a+(origOf(i)-i.preco)*i.qtd,0),0);
   const byPay = {}; vs.forEach(v => byPay[v.pagamento]=(byPay[v.pagamento]||0)+v.total);
+  const recF = fiadoRecebido();
   const byProd = {}; vs.forEach(v => v.itens.forEach(i => { byProd[i.nome] = byProd[i.nome]||{q:0,v:0}; byProd[i.nome].q+=i.qtd; byProd[i.nome].v+=i.qtd*i.preco; }));
   const top = Object.entries(byProd).sort((a,b)=>b[1].v-a[1].v).slice(0,8);
   const maxTop = top[0]?.[1].v || 1;
@@ -629,7 +816,9 @@ function renderCaixa(){
     </div>
     ${dias}
     <h2>Saídas por forma de pagamento</h2>
-    <div class="glass list">${Object.keys(PAYL).map(k => `<div class="li"><span class="a">${PAYL[k]}</span><span class="b">${brl(byPay[k]||0)}</span></div>`).join('')}
+    <div class="glass list">${Object.keys(PAYL).filter(k=>k!=='pendura'||byPay.pendura).map(k => `<div class="li"><span class="a" style="${k==='pendura'?'color:var(--warn)':''}">${PAYL[k]}${k==='pendura'?'<small>vendido, ainda não recebido</small>':''}</span><span class="b" style="${k==='pendura'?'color:var(--warn)':''}">${brl(byPay[k]||0)}</span></div>`).join('')}
+      ${recF.total?`<div class="li"><span class="a" style="color:var(--ok)">💰 Pendura recebido<small>${Object.entries(recF.por).map(([k,v])=>PAYL[k]+' '+brl(v)).join(' · ')}</small></span><span class="b" style="color:var(--ok)">+ ${brl(recF.total)}</span></div>`:''}
+      <div class="li"><span class="a"><b>Entrou no caixa</b><small>tudo que foi recebido de fato</small></span><span class="b"><b>${brl(tot - (byPay.pendura||0) + recF.total)}</b></span></div>
       ${taxa?`<div class="li"><span class="a">Taxa de serviço (incluída)</span><span class="b">${brl(taxa)}</span></div>`:''}
       ${descs?`<div class="li"><span class="a" style="color:var(--warn)">Descontos concedidos</span><span class="b" style="color:var(--warn)">− ${brl(descs)}</span></div>`:''}</div>
     ${top.length?`<h2>Mais vendidos</h2><div class="glass list">${top.map(([n,o]) => `<div class="li" style="display:block"><div style="display:flex;justify-content:space-between"><span class="a">${esc(n)} <span class="badge">${o.q}×</span></span><span class="b">${brl(o.v)}</span></div><div class="bar"><i style="width:${o.v/maxTop*100}%"></i></div></div>`).join('')}</div>`:''}
@@ -664,6 +853,10 @@ function textoFechamento(){
   L.push('');
   L.push('*Por forma de pagamento*');
   [['credito','💳 Crédito'],['debito','💳 Débito'],['pix','⚡ Pix'],['dinheiro','💵 Dinheiro']].forEach(([k,n]) => L.push(`${n}: ${brl(byPay[k]||0)}`));
+  if(byPay.pendura) L.push(`📝 Pendurado (a receber): ${brl(byPay.pendura)}`);
+  const recF = fiadoRecebido(); if(recF.total) L.push(`💰 Pendura recebido: ${brl(recF.total)}`);
+  L.push(`*Entrou no caixa: ${brl(tot - (byPay.pendura||0) + recF.total)}*`);
+  const emAberto = devedores().reduce((s,d)=>s+d.total,0); if(emAberto) L.push(`📒 Total pendurado em aberto: ${brl(emAberto)}`);
   if(taxa) L.push(`➕ Taxa de serviço (incluída): ${brl(taxa)}`);
   if(descs) L.push(`🏷️ Descontos concedidos: ${brl(descs)}`);
   if(top.length){ L.push(''); L.push('*Mais vendidos*'); top.forEach(([n,o],i) => L.push(`${i+1}. ${n} — ${fmtQ(o.q)}× (${brl(o.v)})`)); }
@@ -851,6 +1044,17 @@ function renderAjustes(){
       <p class="note" style="margin-bottom:0">Vendas antes desse horário contam no dia anterior (ex.: 6 → a madrugada de sábado entra no caixa de sexta).</p>
     </div>
     ${ACESSO_URL && diasRestantes()!==null ? `<div class="glass" style="padding:14px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:10px"><span><b>${acesso.plano==='pago'?'Plano ativo':'Teste grátis'}</b><small class="note" style="display:block;margin:2px 0 0">até ${new Date(acesso.vence).toLocaleDateString('pt-BR')}</small></span><span class="badge ${diasRestantes()<=5?'low':'ok'}" style="font-size:14px;padding:6px 10px">${Math.max(0,diasRestantes())} dia(s)</span></div>` : ''}
+    <h2>Pix do estabelecimento</h2>
+    <div class="glass" style="padding:16px;margin-bottom:16px">
+      <p class="note" style="margin-top:0">Com o Pix cadastrado, o app gera o <b>QR Code e o copia e cola com o valor da conta</b>, sem taxa de maquininha.</p>
+      <label class="field"><span>Tipo de chave</span><select class="inp" onchange="cfg.pixTipo=this.value;persist();renderAjustes()">${[['cpf','CPF / CNPJ'],['cel','Celular'],['email','E-mail'],['aleatoria','Chave aleatória']].map(([k,l])=>`<option value="${k}" ${(cfg.pixTipo||'cel')===k?'selected':''}>${l}</option>`).join('')}</select></label>
+      <label class="field"><span>Chave Pix</span><input class="inp" value="${esc(cfg.pixChave||'')}" placeholder="${{cpf:'000.000.000-00',cel:'(11) 99999-9999',email:'voce@email.com',aleatoria:'1234abcd-...'}[cfg.pixTipo||'cel']}" onchange="cfg.pixChave=this.value.trim();persist();renderAjustes()"></label>
+      <div class="row">
+        <label class="field"><span>Nome de quem recebe</span><input class="inp" value="${esc(cfg.pixNome||'')}" placeholder="Como está no banco" onchange="cfg.pixNome=this.value.trim();persist()"></label>
+        <label class="field"><span>Cidade</span><input class="inp" value="${esc(cfg.pixCidade||'')}" placeholder="São Paulo" onchange="cfg.pixCidade=this.value.trim();persist()"></label>
+      </div>
+      ${pixOk() ? `<p class="note" style="margin:0;color:var(--ok)">✓ Pix pronto. Faça um teste: abra uma conta de R$ 1,00 e pague com o seu banco.</p>` : ''}
+    </div>
     <h2>Comanda Aí Pro <span class="badge" style="vertical-align:middle;background:var(--grad);color:#05060a">em breve</span></h2>
     <div class="glass pro" style="padding:16px">
       <p class="note" style="margin-top:0">Tudo desta versão continua grátis. Toque em <b>Quero</b> no que faria diferença no seu bar:</p>
@@ -871,10 +1075,10 @@ function renderAjustes(){
       <input type="file" id="restore-file" accept=".json,application/json" hidden onchange="restore(this.files[0])">
       <button class="btn btn-danger btn-block" style="margin-top:10px" onclick="resetAll()">Apagar tudo e recomeçar</button>
     </div>
-    <p class="note" style="text-align:center;margin-top:24px">Comanda Aí · versão gratuita 0.7${ACESSO_URL && acesso.id ? `<br>Código deste aparelho: <b style="color:var(--text);user-select:all">${esc(acesso.id)}</b> · ${esc(acesso.status||'')}` : ''}</p>`;
+    <p class="note" style="text-align:center;margin-top:24px">Comanda Aí · versão gratuita 0.8${ACESSO_URL && acesso.id ? `<br>Código deste aparelho: <b style="color:var(--text);user-select:all">${esc(acesso.id)}</b> · ${esc(acesso.status||'')}` : ''}</p>`;
 }
 async function backup(){
-  const data = JSON.stringify({app:'comanda-ai', versao:3, em:new Date().toISOString(), products, open, vendas, entradas, cfg}, null, 2);
+  const data = JSON.stringify({app:'comanda-ai', versao:4, em:new Date().toISOString(), products, open, vendas, entradas, fiados, cfg}, null, 2);
   const name = 'comanda-ai-backup-'+opDay(Date.now())+'.json';
   const file = new File([data], name, {type:'application/json'});
   cfg.lastBackup = Date.now(); persist();
@@ -890,7 +1094,7 @@ function restore(file){
       const d = JSON.parse(r.result);
       if(!Array.isArray(d.products) || !Array.isArray(d.vendas)) throw new Error('arquivo inválido');
       if(!confirm(`Restaurar backup de ${d.em?new Date(d.em).toLocaleString('pt-BR'):'data desconhecida'}?\nIsso substitui os dados atuais deste aparelho.`)) return;
-      products = d.products; open = d.open||[]; vendas = d.vendas; entradas = d.entradas||[]; cfg = Object.assign(cfg, d.cfg||{}); queue = [];
+      products = d.products; open = d.open||[]; vendas = d.vendas; entradas = d.entradas||[]; fiados = d.fiados||[]; cfg = Object.assign(cfg, d.cfg||{}); queue = [];
       persist(); render(); toast('Backup restaurado');
     }catch(e){ toast('Não consegui ler esse arquivo'); }
   };
