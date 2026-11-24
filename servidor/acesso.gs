@@ -15,7 +15,7 @@
  *
  * Como funciona:
  * - Cada pedido vira uma linha na aba "Acessos" e chega um e-mail com LIBERAR e RECUSAR.
- * - Ao liberar, começa o teste grátis de 30 dias (coluna "vence_em", plano "teste").
+ * - Ao liberar, começa o teste grátis de 20 dias (coluna "vence_em", plano "teste").
  * - Todo dia às 9h chega um e-mail com quem vence em até 3 dias, com o botão "Renovar +30 dias".
  * - Quando vence, o app do bar mostra "teste terminou" (os dados dele continuam no celular).
  * - Para renovar à mão: mude a data em "vence_em" (e o plano para "pago"). O app libera sozinho.
@@ -30,10 +30,10 @@
 
 const ABA = 'Acessos';
 const COLS = ['id', 'pedido_em', 'bar', 'nome', 'whatsapp', 'email', 'status', 'token', 'ultimo_acesso', 'aparelho', 'vence_em', 'plano'];
-const DIAS_TESTE = 30;        // teste grátis a partir da liberação
+const DIAS_TESTE = 20;        // teste grátis a partir da liberação
 const MAX_PEDIDOS_DIA = 30;   // acima disso no mesmo dia, o pedido é guardado mas não manda e-mail (proteção contra abuso)
 const DIA = 24 * 3600 * 1000;
-const VERSAO = '3';
+const VERSAO = '4';
 
 // Lê a data da coluna vence_em mesmo se ela foi digitada como texto ("21/11/2026", "21/11/26", "2026-11-21").
 function dataDe_(v) {

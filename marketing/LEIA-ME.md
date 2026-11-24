@@ -18,7 +18,7 @@
 🍻 O caixa do seu bar no celular
 📲 Comandas, fechamento e estoque
 🔥 Narguilé e chopp no controle
-🎁 30 dias grátis 👇
+🎁 20 dias grátis 👇
 ```
 
 **Link:** o seu WhatsApp, `wa.me/5511976186328`. Não ponha o link do app. Cada bar passa por você, e o convite vira parte da venda.
@@ -32,7 +32,7 @@
 | Narguilé | Lançar narguilé e o carvão saindo do estoque |
 | Chopp | Barril de 50 L e quantas canecas rendeu |
 | Clientes | Prints de mensagens e fotos dos bares usando (com autorização) |
-| Grátis | Como pedir os 30 dias |
+| Grátis | Como pedir os 20 dias |
 
 ---
 
@@ -52,7 +52,7 @@ Se pra responder precisa somar comanda de papel, o Comanda Aí é pra você. �
 
 Tudo no celular. Funciona até sem internet.
 
-🎁 Teste 30 dias GRÁTIS no seu bar.
+🎁 Teste 20 dias GRÁTIS no seu bar.
 Me chama no WhatsApp pelo link da bio que eu te ajudo a instalar. 🍻
 
 #donodebar #bar #tabacaria #narguile #chopp #gestaodebar #barsp #empreendedorismo
@@ -72,7 +72,7 @@ Olha como fica o caixa do bar no Comanda Aí 👇
 Feito pra bar que vende bebida e narguilé. 🍻
 Funciona até sem internet.
 
-🎁 30 dias GRÁTIS: chama no WhatsApp pelo link da bio!
+🎁 20 dias GRÁTIS: chama no WhatsApp pelo link da bio!
 
 #donodebar #bar #narguile #chopp #tabacaria #gestaodebar #barsp
 ```
@@ -84,12 +84,12 @@ Funciona até sem internet.
 ```
 Oi! Esse é o Comanda Aí, o app que eu fiz pra bar. 🍻
 Em 1 minuto o vídeo mostra como cadastra os produtos, abre comanda, fecha a conta e vê o lucro do dia.
-Se quiser testar 30 dias grátis no seu bar, eu instalo pra você. 😉
+Se quiser testar 20 dias grátis no seu bar, eu instalo pra você. 😉
 ```
 
 ### Link do WhatsApp (bio)
 ```
-https://wa.me/5511976186328?text=Oi%21%20Vi%20o%20Comanda%20A%C3%AD%20no%20Instagram%20e%20quero%20testar%2030%20dias%20gr%C3%A1tis%20no%20meu%20bar%20%F0%9F%8D%BB
+https://wa.me/5511976186328?text=Oi%21%20Vi%20o%20Comanda%20A%C3%AD%20no%20Instagram%20e%20quero%20testar%2020%20dias%20gr%C3%A1tis%20no%20meu%20bar%20%F0%9F%8D%BB
 ```
 
 ### Impulsionar
@@ -131,7 +131,7 @@ https://wa.me/5511976186328?text=Oi%21%20Vi%20o%20Comanda%20A%C3%AD%20no%20Insta
 | 5 | Narguilé sendo montado na mesa + toque em "Narguilé" no app | 3 s | **"Narguilé já desconta o carvão"** |
 | 6 | Cliente pagando na maquininha + toque em "Cobrado na maquininha ✓" | 4 s | **"Fecha a conta em segundos"** |
 | 7 | Tela do Resumo mostrando o resultado do dia | 3 s | **"E o lucro da noite na hora"** |
-| 8 | Dono sorrindo, brindando, ou mostrando o celular para a câmera | 2 s | **"Comanda Aí · 30 dias grátis"** |
+| 8 | Dono sorrindo, brindando, ou mostrando o celular para a câmera | 2 s | **"Comanda Aí · 20 dias grátis"** |
 
 **Dicas de gravação:**
 - Grave cada cena **2 a 3 vezes** e escolha a melhor.

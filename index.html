@@ -1188,7 +1188,7 @@ function gate(estado, erro){
       <label class="field"><span>E-mail (para o aviso de liberação)</span><input class="inp" id="ga-email" type="email" autocomplete="email" value="${esc(acesso.email||'')}"></label>
       ${erro?`<p class="note" style="color:var(--bad);margin-top:0">${esc(erro)}</p>`:''}
       <button class="btn btn-primary btn-block" id="ga-btn" type="submit">Solicitar acesso</button>
-      <p class="note" style="margin:12px 0 0;font-size:12px">Usamos estes dados só para liberar seu acesso e falar com você sobre o Comanda Aí. Ao liberar, você ganha 30 dias grátis.</p>
+      <p class="note" style="margin:12px 0 0;font-size:12px">Usamos estes dados só para liberar seu acesso e falar com você sobre o Comanda Aí. Ao liberar, você ganha 20 dias grátis.</p>
     </form>`;
   $('gate-in').innerHTML = html;
 }
