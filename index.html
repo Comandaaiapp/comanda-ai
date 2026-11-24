@@ -470,7 +470,7 @@ function renderComandas(){
   $('comandas-grid').innerHTML = list.length ? list.map(c => `
     <button class="card glass" onclick="openComanda('${c.id}')">
       <div><div class="tag ${c.tipo}">${c.tipo==='mesa'?'Mesa':'Cliente'}</div><div class="nm">${c.tipo==='mesa'?'Mesa '+esc(c.nome):esc(c.nome)}</div></div>
-      <div><div class="tot">${brl(totalOf(c))}</div><div class="meta">${plural(c.itens.reduce((s,i)=>s+i.qtd,0))} · ${since(c.abertaEm)}</div></div>
+      <div><div class="tot">${brl(totalOf(c) + fiadoSomado(c).reduce((s,f)=>s+abertoDe(f),0))}</div><div class="meta">${plural(c.itens.reduce((s,i)=>s+i.qtd,0))}${fiadoSomado(c).length?' + pendura':''} · ${since(c.abertaEm)}</div></div>
     </button>`).join('') :
     `<div class="empty" style="grid-column:1/-1"><div class="big">🍻</div><b>Nenhuma comanda aberta</b><p class="note" style="text-align:center">Toque no <b>+</b> para abrir por mesa ou pelo nome do cliente.</p></div>`;
 }
@@ -504,7 +504,9 @@ function renderComanda(){
   $('cd-tipo').textContent = c.tipo==='mesa' ? 'Mesa · aberta às '+fmtTime(c.abertaEm) : 'Cliente · aberta às '+fmtTime(c.abertaEm);
   $('cd-nome').textContent = c.tipo==='mesa' ? 'Mesa '+c.nome : c.nome;
   $('cd-alerta').innerHTML = alertaFiado(c);
-  $('cd-items').innerHTML = c.itens.length ? c.itens.map(i => `
+  const fs = fiadoSomado(c), ant = fs.reduce((s,f)=>s+abertoDe(f),0);
+  const linhaPend = ant ? `<div class="item"><div class="n" style="color:var(--warn)">📝 Pendura anterior<small>${fs.map(f=>fmtDia(f.dia)).join(', ')} · quitado ao fechar</small></div><button class="btn btn-ghost btn-sm" style="flex:none" onclick="current.somarFiado=[];persist();renderComanda()">Tirar</button><div class="v" style="color:var(--warn)">${brl(ant)}</div></div>` : '';
+  $('cd-items').innerHTML = (c.itens.length || ant) ? linhaPend + c.itens.map(i => `
     <div class="item"><button class="n" style="text-align:left" onclick="editItem('${i.pid}')">${esc(i.nome)}<small>${origOf(i)!==i.preco?`<s>${brl(origOf(i))}</s> `:''}<span style="color:${origOf(i)!==i.preco?'var(--warn)':'inherit'}">${brl(i.preco)} un.</span> · <span style="color:var(--a1)">editar</span></small></button>
       <div class="step"><button onclick="addItem('${i.pid}',-1)">−</button><span>${i.qtd}</span><button onclick="addItem('${i.pid}',1)">+</button></div>
       <div class="v">${brl(i.preco*i.qtd)}</div></div>`).join('') :
@@ -518,7 +520,7 @@ function renderComanda(){
     const st = av===null ? '' : `<span class="st ${av<=0?'out':(p.minimo!=null&&av<=p.minimo?'low':'')}">${av} un</span>`;
     return `<div class="prod" role="button" tabindex="0" onclick="addItem('${p.id}',1)">${st}${q?`<span class="q">${q}</span>`:''}<b>${esc(p.nome)}</b><span class="p">${brl(p.preco)}</span>${q?`<button class="minus" aria-label="Tirar um ${esc(p.nome)}" onclick="event.stopPropagation();addItem('${p.id}',-1)">−</button>`:''}</div>`;
   }).join('');
-  $('cd-total').textContent = brl(totalOf(c));
+  $('cd-total').textContent = brl(totalOf(c) + ant);
 }
 // quanto ainda dá para vender (considera o próprio estoque e os insumos)
 function available(p){
@@ -571,7 +573,7 @@ function cancelComanda(){
 /* ================== Fechar conta ================== */
 let pay = null, comTaxa = false, pessoas = 1, desconto = 0, pend = {nome:'', zap:''};
 function openClose(){
-  if(!current.itens.length) return toast('A comanda está vazia');
+  if(!current.itens.length && !fiadoSomado(current).length) return toast('A comanda está vazia');
   pay = null; comTaxa = false; pessoas = 1; desconto = 0;
   const d = current.tipo==='pessoa' ? devedorPorNome(current.nome) : null;
   pend = {nome: current.tipo==='pessoa' ? current.nome : '', zap: d?.zap || ''};
@@ -606,6 +608,7 @@ function renderClose(){
       <button class="pend ${pay==='pendura'?'on':''}" onclick="pay='pendura';renderClose();setTimeout(()=>{const e=$('pd-nome');e.scrollIntoView({block:'center',behavior:'smooth'});if(!e.value)e.focus();},60)"><span>📝</span>Pendura Aí · paga depois</button>
     </div>
     ${pay==='pix' ? blocoPix(pessoas>1 ? cobrar/pessoas : cobrar, pessoas>1 ? `Pix de cada pessoa (${brl(cobrar/pessoas)})` : 'Pix para pagar agora') : ''}
+    ${pay!=='pendura' ? `<label class="field" style="margin:6px 0"><span>📱 WhatsApp do cliente (opcional, para mandar a conta)</span><input class="inp" id="cl-zap" type="tel" inputmode="tel" value="${esc(pend.zap)}" placeholder="(11) 99999-9999" oninput="pend.zap=this.value"></label>` : ''}
     ${pay==='pendura' ? `<div class="glass" style="padding:14px;margin-bottom:6px">
       <label class="field"><span>Nome do cliente</span><input class="inp" id="pd-nome" value="${esc(pend.nome)}" placeholder="Ex.: João do mercadinho" oninput="pend.nome=this.value"></label>
       <label class="field" style="margin-bottom:6px"><span>WhatsApp (para lembrar depois)</span><input class="inp" id="pd-zap" type="tel" inputmode="tel" value="${esc(pend.zap)}" placeholder="(11) 99999-9999" oninput="pend.zap=this.value"></label>
@@ -693,7 +696,7 @@ function textoConta(){
   else L.push('', 'Obrigado pela preferência! 🙏');
   return L.join('\n');
 }
-function enviarConta(){ abrirZap(pay==='pendura' ? pend.zap : '', textoConta()); }
+function enviarConta(){ abrirZap(pend.zap, textoConta()); if(!String(pend.zap||'').replace(/\D/g,'')) toast('Sem número: escolha o contato no WhatsApp'); }
 
 /* ================== Pendura Aí (fiado) ================== */
 const abertoDe = f => Math.round((f.valor - (f.pagamentos||[]).reduce((s,p)=>s+p.valor,0))*100)/100;
@@ -716,7 +719,7 @@ function alertaFiado(c){
   const d = devedorPorNome(c.nome); if(!d) return '';
   const somado = (c.somarFiado||[]).length > 0;
   return somado
-    ? `<div class="alerta ok"><span style="font-size:22px">✓</span><span class="tx"><b>Pendura de ${brl(d.total)} vai junto nesta conta</b><small>Ao fechar, a conta antiga é quitada.</small></span><button class="btn btn-ghost btn-sm" onclick="current.somarFiado=[];persist();renderComanda()">Desfazer</button></div>`
+    ? ''
     : `<div class="alerta"><span style="font-size:22px">📝</span><span class="tx"><b>${esc(d.nome)} tem ${brl(d.total)} pendurado</b><small>desde ${new Date(d.desde).toLocaleDateString('pt-BR')} · ${d.itens.length} conta(s)</small></span><button class="btn btn-ghost btn-sm" style="flex:none" onclick="current.somarFiado=devedorPorNome(current.nome).itens.map(f=>f.id);persist();renderComanda()">Somar nesta conta</button></div>`;
 }
 function fiadoRecebido(){
