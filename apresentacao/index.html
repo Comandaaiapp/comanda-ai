@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07080d">
+<title>Comanda Aí · o caixa do seu bar no celular</title>
+<meta name="description" content="Comandas, Pix com QR Code, Pendura Aí (fiado), estoque e o lucro da noite. Tudo no celular, até sem internet. Teste 20 dias grátis.">
+<meta property="og:title" content="Comanda Aí · o caixa do seu bar no celular">
+<meta property="og:description" content="Comandas, Pix, fiado, estoque e o lucro da noite no celular. Teste 20 dias grátis.">
+<meta property="og:image" content="img/compartilhar.jpg">
+<link rel="icon" href="img/logo.svg" type="image/svg+xml">
+<style>
+  /* Página de venda mobile-first: hero com vídeo, cartões de funcionalidade com a tela real, passos e perguntas */
+  :root { --ink:#07080d; --card:#11131c; --line:rgba(255,255,255,.09); --text:#f4f6fb; --muted:#9aa0b4;
+          --c1:#22e6ff; --c2:#8b5cf6; --c3:#ff3d9a; --ok:#30d97a; --zap:#25d366;
+          --grad:linear-gradient(120deg,var(--c1),var(--c2) 55%,var(--c3));
+          --display:"Inter Display","Inter",-apple-system,"SF Pro Display",Segoe UI,Roboto,sans-serif;
+          --body:"Inter",-apple-system,"SF Pro Text",Segoe UI,Roboto,sans-serif; color-scheme:dark }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  html { scroll-behavior:smooth }
+  body { background:var(--ink); color:var(--text); font-family:var(--body); line-height:1.5; -webkit-font-smoothing:antialiased }
+  body::before { content:""; position:fixed; inset:-20%; z-index:-1; pointer-events:none;
+    background:radial-gradient(40% 30% at 10% 5%, rgba(34,230,255,.14), transparent 70%), radial-gradient(40% 30% at 95% 30%, rgba(139,92,246,.16), transparent 70%), radial-gradient(50% 30% at 60% 100%, rgba(255,61,154,.1), transparent 70%) }
+  .wrap { max-width:1040px; margin:0 auto; padding-left:max(18px, env(safe-area-inset-left)); padding-right:max(18px, env(safe-area-inset-right)) }
+  header.top { display:flex; align-items:center; justify-content:space-between; padding-block:18px }
+  .brand { display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:800; font-size:20px; letter-spacing:-.03em }
+  .brand img { width:32px; height:32px }
+  .gr { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:10px; min-height:54px; padding:0 26px; border-radius:16px; font-weight:800; font-size:17px; text-decoration:none; transition:transform .12s }
+  .btn:active { transform:scale(.97) }
+  .btn-zap { background:var(--zap); color:#04260f }
+  .btn-ghost { border:1px solid var(--line); color:var(--text); background:rgba(255,255,255,.05) }
+  .btn-sm { min-height:42px; padding:0 16px; font-size:15px; border-radius:12px }
+  .hero { display:grid; grid-template-columns:1.1fr .9fr; gap:40px; align-items:center; padding-block:28px 56px }
+  .hero h1 { font-family:var(--display); font-weight:800; font-size:clamp(40px, 7vw, 66px); line-height:1; letter-spacing:-.045em; text-wrap:balance }
+  .hero p.lead { font-size:19px; color:var(--muted); margin:20px 0 28px; max-width:520px }
+  .hero p.lead b { color:var(--text) }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; margin-top:22px }
+  .chip { font-size:13px; font-weight:700; padding:7px 12px; border-radius:20px; background:rgba(255,255,255,.06); border:1px solid var(--line); color:var(--muted) }
+  .video { justify-self:center; width:100%; max-width:340px; border-radius:28px; padding:3px; background:var(--grad); box-shadow:0 30px 100px -30px rgba(139,92,246,.6) }
+  .video video { display:block; width:100%; border-radius:26px; background:#000; aspect-ratio:9/16 }
+  .video small { display:block; text-align:center; color:var(--muted); font-size:13px; margin-top:10px }
+  section { padding-block:48px }
+  .eyebrow { font-size:13px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--c1) }
+  h2 { font-family:var(--display); font-weight:800; font-size:clamp(30px, 5vw, 44px); line-height:1.05; letter-spacing:-.04em; margin:8px 0 12px; text-wrap:balance }
+  .sub { color:var(--muted); font-size:17px; max-width:620px }
+  .feats { display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:16px; margin-top:28px }
+  .feat { background:var(--card); border:1px solid var(--line); border-radius:24px; overflow:hidden; display:flex; flex-direction:column }
+  .feat .tx { padding:20px 20px 16px }
+  .feat .n { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:10px; background:var(--grad); color:#07080d; font-weight:800; font-size:15px; margin-bottom:10px }
+  .feat h3 { font-family:var(--display); font-size:22px; letter-spacing:-.02em; line-height:1.15; margin-bottom:6px }
+  .feat p { color:var(--muted); font-size:15px }
+  .feat p b { color:var(--text) }
+  .feat .shot { margin-top:auto; height:300px; overflow:hidden; padding:0 26px; display:flex; justify-content:center }
+  .feat .shot img { width:100%; height:100%; max-width:240px; border-radius:22px 22px 0 0; border:3px solid #2a2d3a; border-bottom:0; object-fit:cover; object-position:top; display:block }
+  .destaque { margin-top:16px; display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center; padding:28px; border-radius:28px; border:1px solid rgba(255,176,32,.35); background:linear-gradient(135deg, rgba(255,176,32,.1), rgba(255,61,154,.06)) }
+  .destaque h3 { font-family:var(--display); font-size:28px; letter-spacing:-.03em; line-height:1.1 }
+  .destaque p { color:var(--muted); margin-top:8px; max-width:520px }
+  .destaque img { width:200px; border-radius:20px; border:3px solid #2a2d3a }
+  .simples { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px; margin-top:26px }
+  .simples div { padding:20px; border-radius:20px; background:rgba(255,255,255,.04); border:1px solid var(--line) }
+  .simples span { font-size:28px }
+  .simples b { display:block; font-family:var(--display); font-size:18px; margin:8px 0 4px }
+  .simples p { color:var(--muted); font-size:14px }
+  .passos { counter-reset:p; display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; margin-top:26px }
+  .passos li { list-style:none; counter-increment:p; padding:22px; border-radius:20px; background:var(--card); border:1px solid var(--line) }
+  .passos li::before { content:counter(p); display:inline-grid; place-items:center; width:40px; height:40px; border-radius:12px; background:var(--grad); color:#07080d; font-weight:800; font-size:19px; margin-bottom:12px }
+  .passos b { display:block; font-size:18px; margin-bottom:4px }
+  .passos p { color:var(--muted); font-size:15px }
+  details { border-bottom:1px solid var(--line); padding-block:16px }
+  details:first-of-type { border-top:1px solid var(--line); margin-top:22px }
+  summary { cursor:pointer; font-weight:700; font-size:17px; list-style:none; display:flex; justify-content:space-between; gap:16px }
+  summary::after { content:"+"; color:var(--c1); font-size:22px; line-height:1 }
+  details[open] summary::after { content:"–" }
+  details p { color:var(--muted); margin-top:8px; max-width:700px }
+  .cta { text-align:center; padding:44px 22px; border-radius:32px; background:var(--card); border:1px solid var(--line); margin-block:24px 56px }
+  .cta h2 { margin-top:0 }
+  .cta p { color:var(--muted); margin:0 auto 24px; max-width:480px }
+  footer { color:var(--muted); font-size:13px; text-align:center; padding-block:0 40px }
+  .fix { position:fixed; left:0; right:0; bottom:0; padding:12px max(18px, env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); background:rgba(7,8,13,.9); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-top:1px solid var(--line); display:none; z-index:10 }
+  .fix .btn { width:100% }
+  @media (max-width:760px) {
+    .hero { grid-template-columns:1fr; gap:28px; padding-top:8px }
+    .video { max-width:300px }
+    .destaque { grid-template-columns:1fr }
+    .destaque img { width:180px; justify-self:center }
+    .fix { display:block }
+    footer { padding-bottom:110px }
+    header.top .btn { display:none }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto } .btn { transition:none } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand"><img src="img/logo.svg" alt="">Comanda Aí</div>
+    <a class="btn btn-zap btn-sm zap" href="#">💬 Testar grátis</a>
+  </header>
+
+  <div class="hero">
+    <div>
+      <h1>O caixa do seu bar <span class="gr">no celular</span></h1>
+      <p class="lead">Abre a comanda, lança as bebidas, fecha a conta no Pix e sabe <b>o lucro da noite na hora</b>. Feito para bar, tabacaria e adega. Funciona até sem internet.</p>
+      <a class="btn btn-zap zap" href="#">💬 Testar 20 dias grátis</a>
+      <div class="chips"><span class="chip">📶 Sem internet</span><span class="chip">⚡ Pix sem taxa</span><span class="chip">📝 Controle do fiado</span><span class="chip">📱 Só o celular</span></div>
+    </div>
+    <div class="video">
+      <video src="../marketing/reels/comanda-ai-video-completo.mp4" poster="img/poster-completo.jpg" controls playsinline preload="none"></video>
+      <small>Veja uma noite inteira em 1 minuto ▶</small>
+    </div>
+  </div>
+
+  <section id="funcionalidades">
+    <div class="eyebrow">O que ele faz</div>
+    <h2>Tudo que o caixa precisa, <span class="gr">em poucos toques</span></h2>
+    <p class="sub">Essas são as telas de verdade do app, num bar de exemplo.</p>
+    <div class="feats">
+      <article class="feat"><div class="tx"><span class="n">1</span><h3>Comanda por mesa ou nome</h3><p>Toca no <b>+</b>, escolhe a mesa ou digita "João camisa azul". Todas as contas abertas numa tela, com o total na hora.</p></div><div class="shot"><img src="img/g1-comandas.jpg" alt="Tela de comandas abertas" loading="lazy"></div></article>
+      <article class="feat"><div class="tx"><span class="n">2</span><h3>Lança com um toque</h3><p>Cada toque soma uma bebida. Errou, o <b>botão vermelho</b> tira. Fez preço camarada, toca em <b>editar</b>.</p></div><div class="shot"><img src="img/g2-lancar.jpg" alt="Tela de lançamento de bebidas" loading="lazy"></div></article>
+      <article class="feat"><div class="tx"><span class="n">3</span><h3>Pix com QR Code, sem taxa</h3><p>Fecha no cartão, dinheiro ou Pix com o <b>valor já no QR Code</b>. Divide entre os amigos. O Pix cai direto na sua conta.</p></div><div class="shot"><img src="img/g3-pix.jpg" alt="Tela de fechar conta com QR Code do Pix" loading="lazy"></div></article>
+      <article class="feat"><div class="tx"><span class="n">4</span><h3>Conta no WhatsApp</h3><p>O cliente recebe os itens, o total e o <b>Pix copia e cola</b> no WhatsApp dele. Serve como prévia ou recibo.</p></div><div class="shot"><img src="img/g3-pix.jpg" alt="Botão de mandar a conta no WhatsApp" loading="lazy" style="object-position:bottom"></div></article>
+      <article class="feat"><div class="tx"><span class="n">5</span><h3>Compras e despesas</h3><p>Chegou o barril, o carvão, o gelo? Lança <b>o que veio e quanto pagou</b>. O estoque soma sozinho.</p></div><div class="shot"><img src="img/g6-entradas.jpg" alt="Tela de entradas" loading="lazy"></div></article>
+      <article class="feat"><div class="tx"><span class="n">6</span><h3>Seu cardápio, seus preços</h3><p>Cadastra seus produtos com o seu preço. Vendeu, o estoque <b>baixa sozinho</b>, até o carvão do narguilé e o chopp em litros.</p></div><div class="shot"><img src="img/g7-cadastro.jpg" alt="Tela de cadastro de produto" loading="lazy"></div></article>
+      <article class="feat"><div class="tx"><span class="n">7</span><h3>O lucro da noite na hora</h3><p><b>Vendas menos compras</b>, por forma de pagamento, e o mês inteiro. O fechamento vai pro dono no WhatsApp.</p></div><div class="shot"><img src="img/g8-resumo.jpg" alt="Tela de resumo do dia" loading="lazy"></div></article>
+    </div>
+
+    <div class="destaque">
+      <div>
+        <div class="eyebrow" style="color:#ffb020">Pendura Aí</div>
+        <h3>"Pendura aí que amanhã eu pago": agora sem caderninho</h3>
+        <p>A conta fica no nome do cliente. Quando ele volta, o app avisa quanto ele deve. O lembrete vai educado pelo WhatsApp, já com o Pix. Pagou uma parte? O app guarda o resto.</p>
+      </div>
+      <img src="img/g5-pendura.jpg" alt="Alerta de conta pendurada" loading="lazy">
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Simples assim</div>
+    <h2>Feito para a rotina <span class="gr">de bar</span></h2>
+    <div class="simples">
+      <div><span>📶</span><b>Funciona sem internet</b><p>Caiu o Wi-Fi? O caixa continua lançando.</p></div>
+      <div><span>📱</span><b>Só o celular</b><p>Usa o celular que você já tem e a sua maquininha.</p></div>
+      <div><span>🔒</span><b>Seus dados são seus</b><p>Ficam no aparelho do bar, com backup no seu WhatsApp.</p></div>
+      <div><span>⚡</span><b>Pronto em minutos</b><p>Sem baixar na loja: abre o link e instala na tela.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="eyebrow">Como começar</div>
+    <h2>Testa no seu bar, <span class="gr">20 dias grátis</span></h2>
+    <ol class="passos">
+      <li><b>Chama a gente no WhatsApp</b><p>Toca no botão verde e manda um oi.</p></li>
+      <li><b>A gente instala com você</b><p>Cadastramos seus produtos, seus preços e o seu Pix.</p></li>
+      <li><b>Usa 20 dias sem pagar nada</b><p>Sem cartão de crédito. Gostou, continua.</p></li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="eyebrow">Dúvidas</div>
+    <h2>Perguntas que todo dono faz</h2>
+    <details><summary>Preciso de internet?</summary><p>Não. O app funciona sem internet. Só precisa de conexão para mandar mensagens no WhatsApp.</p></details>
+    <details><summary>Preciso trocar a maquininha?</summary><p>Não. Você continua usando a sua. E no Pix com QR Code do app o dinheiro cai direto na sua conta, sem taxa de maquininha.</p></details>
+    <details><summary>Meu funcionário vai saber usar?</summary><p>Se ele usa WhatsApp, usa o Comanda Aí. É tocar na bebida e pronto. A gente ensina na instalação.</p></details>
+    <details><summary>E se eu perder o celular?</summary><p>Você faz backup e manda o arquivo para o seu WhatsApp. No celular novo, é só restaurar.</p></details>
+    <details><summary>Quanto custa?</summary><p>Os 20 primeiros dias são grátis, sem cartão. Depois, chama a gente que explicamos os planos.</p></details>
+    <details><summary>Serve para tabacaria e adega?</summary><p>Serve. Tem narguilé com baixa automática de carvão e essência, chopp em litros e venda de bebidas em geral.</p></details>
+  </section>
+
+  <div class="cta">
+    <h2>Bora testar no <span class="gr">seu bar?</span></h2>
+    <p>20 dias grátis, com instalação feita por nós. Sem cartão, sem compromisso.</p>
+    <a class="btn btn-zap zap" href="#">💬 Chamar no WhatsApp</a>
+  </div>
+  <footer>Comanda Aí · o caixa do seu bar no celular · Instagram @comanda.aiapp</footer>
+</div>
+<div class="fix"><a class="btn btn-zap zap" href="#">💬 Testar 20 dias grátis</a></div>
+<script>
+  // Botões de WhatsApp: mensagem pronta, e quem indicou (?por=nome) entra na mensagem
+  (function () {
+    var por = new URLSearchParams(location.search).get('por');
+    var msg = 'Oi! Vi a apresentação do Comanda Aí e quero testar 20 dias grátis no meu bar 🍻' + (por ? ' (indicação: ' + por.slice(0, 40) + ')' : '');
+    var url = 'https://wa.me/5511976186328?text=' + encodeURIComponent(msg);
+    document.querySelectorAll('a.zap').forEach(function (a) { a.href = url; a.target = '_blank'; a.rel = 'noopener'; });
+  })();
+</script>
+</body>
+</html>

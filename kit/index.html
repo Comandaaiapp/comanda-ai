@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex"><meta name="theme-color" content="#07080d">
+<title>Comanda Aí · kit do time</title><link rel="icon" href="../apresentacao/img/logo.svg" type="image/svg+xml">
+<style>
+  :root { --ink:#07080d; --card:#11131c; --line:rgba(255,255,255,.09); --text:#f4f6fb; --muted:#9aa0b4; --c1:#22e6ff; --c2:#8b5cf6; --c3:#ff3d9a; --zap:#25d366;
+          --grad:linear-gradient(120deg,var(--c1),var(--c2) 55%,var(--c3)); --display:"Inter Display","Inter",-apple-system,Segoe UI,Roboto,sans-serif; color-scheme:dark }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { background:var(--ink); color:var(--text); font:16px/1.5 "Inter",-apple-system,Segoe UI,Roboto,sans-serif; -webkit-font-smoothing:antialiased }
+  .wrap { max-width:900px; margin:0 auto; padding:20px max(16px, env(safe-area-inset-right)) 60px max(16px, env(safe-area-inset-left)) }
+  .brand { display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:800; font-size:20px; letter-spacing:-.03em }
+  .brand img { width:30px }
+  h1 { font-family:var(--display); font-size:38px; letter-spacing:-.04em; line-height:1.05; margin:22px 0 8px }
+  .gr { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent }
+  .lead { color:var(--muted) }
+  h2 { font-family:var(--display); font-size:24px; letter-spacing:-.03em; margin:36px 0 6px }
+  .hint { color:var(--muted); font-size:14px; margin-bottom:14px }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:18px }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:46px; padding:0 18px; border-radius:14px; font-weight:800; font-size:15px; text-decoration:none; border:0; cursor:pointer; color:inherit; font-family:inherit }
+  .btn-zap { background:var(--zap); color:#04260f }
+  .btn-ghost { background:rgba(255,255,255,.07); border:1px solid var(--line) }
+  .btn-sm { min-height:36px; font-size:14px; padding:0 14px; border-radius:10px }
+  .row { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px }
+  .link { font-family:ui-monospace,Menlo,monospace; font-size:13px; color:var(--muted); word-break:break-all; background:rgba(255,255,255,.04); padding:10px 12px; border-radius:10px; margin-top:10px }
+  input { font:inherit; color:var(--text); background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:12px; padding:0 14px; height:46px; width:100%; max-width:260px }
+  .vids { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:14px }
+  .vid video { width:100%; aspect-ratio:9/16; border-radius:16px; background:#000; display:block }
+  .vid b { display:block; margin:10px 0 2px }
+  .vid small { color:var(--muted) }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(140px, 1fr)); gap:10px }
+  .th { position:relative; display:block; border-radius:12px; overflow:hidden; border:1px solid var(--line) }
+  .th img { width:100%; display:block; aspect-ratio:4/5; object-fit:cover }
+  .th span { position:absolute; right:6px; bottom:6px; font-size:12px; font-weight:800; background:rgba(7,8,13,.85); color:var(--text); padding:3px 8px; border-radius:8px }
+  .msgs { display:grid; gap:10px }
+  .msg b { font-size:13px; color:var(--c1); text-transform:uppercase; letter-spacing:.06em }
+  .msg p { margin:6px 0 10px }
+  .msg { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:14px 16px }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1e2130; padding:10px 16px; border-radius:12px; font-weight:700; opacity:0; transition:opacity .2s; pointer-events:none }
+  .toast.on { opacity:1 }
+</style></head><body><div class="wrap">
+<div class="brand"><img src="../apresentacao/img/logo.svg" alt="">Comanda Aí</div>
+<h1>Kit do <span class="gr">time de vendas</span></h1>
+<p class="lead">Tudo que você precisa mandar ou mostrar para o dono do bar. Siga a ordem do playbook: pergunta, vídeo, apresentação, teste.</p>
+
+<h2>1. Link da apresentação</h2>
+<p class="hint">Mande depois que o bar demonstrar interesse. Coloque seu nome: quando o bar chamar no WhatsApp, a mensagem já diz que a indicação foi sua.</p>
+<div class="card">
+  <input id="nome" placeholder="Seu nome" autocomplete="given-name">
+  <div class="link" id="link"></div>
+  <div class="row"><button class="btn btn-ghost btn-sm" id="copiar-link">Copiar link</button><a class="btn btn-ghost btn-sm" id="abrir" href="../apresentacao/" target="_blank" rel="noopener">Abrir apresentação ↗</a></div>
+</div>
+
+<h2>2. Vídeos</h2>
+<p class="hint">No iPhone: toque em Baixar, depois no ícone de compartilhar e em "Salvar vídeo". No Android, o vídeo vai para Downloads.</p>
+<div class="vids">
+  <div class="vid"><video src="../marketing/reels/comanda-ai-video-completo.mp4" poster="../apresentacao/img/poster-completo.jpg" controls playsinline preload="none"></video><b>Vídeo completo · 68 s</b><small>O primeiro a mandar, depois do "pode mandar"</small><div class="row"><a class="btn btn-ghost btn-sm" href="../marketing/reels/comanda-ai-video-completo.mp4" download>⬇ Baixar</a></div></div>
+  <div class="vid"><video src="../marketing/reels/comanda-ai-reels.mp4" poster="../apresentacao/img/poster-reels.jpg" controls playsinline preload="none"></video><b>Reels · 24 s</b><small>Para o follow-up de 2 dias</small><div class="row"><a class="btn btn-ghost btn-sm" href="../marketing/reels/comanda-ai-reels.mp4" download>⬇ Baixar</a></div></div>
+</div>
+
+<h2>3. Imagens das funcionalidades</h2>
+<p class="hint">Para quem quer ver os detalhes. Toque numa imagem para baixar (ou segure e "Salvar imagem").</p>
+<div class="grid"><a class="th" href="../marketing/carrossel-guia/slide-01.png" download="comanda-ai-funcionalidades-01.png"><img src="../marketing/carrossel-guia/slide-01.png" alt="Slide 1" loading="lazy"><span>01 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-02.png" download="comanda-ai-funcionalidades-02.png"><img src="../marketing/carrossel-guia/slide-02.png" alt="Slide 2" loading="lazy"><span>02 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-03.png" download="comanda-ai-funcionalidades-03.png"><img src="../marketing/carrossel-guia/slide-03.png" alt="Slide 3" loading="lazy"><span>03 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-04.png" download="comanda-ai-funcionalidades-04.png"><img src="../marketing/carrossel-guia/slide-04.png" alt="Slide 4" loading="lazy"><span>04 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-05.png" download="comanda-ai-funcionalidades-05.png"><img src="../marketing/carrossel-guia/slide-05.png" alt="Slide 5" loading="lazy"><span>05 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-06.png" download="comanda-ai-funcionalidades-06.png"><img src="../marketing/carrossel-guia/slide-06.png" alt="Slide 6" loading="lazy"><span>06 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-07.png" download="comanda-ai-funcionalidades-07.png"><img src="../marketing/carrossel-guia/slide-07.png" alt="Slide 7" loading="lazy"><span>07 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-08.png" download="comanda-ai-funcionalidades-08.png"><img src="../marketing/carrossel-guia/slide-08.png" alt="Slide 8" loading="lazy"><span>08 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-09.png" download="comanda-ai-funcionalidades-09.png"><img src="../marketing/carrossel-guia/slide-09.png" alt="Slide 9" loading="lazy"><span>09 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-10.png" download="comanda-ai-funcionalidades-10.png"><img src="../marketing/carrossel-guia/slide-10.png" alt="Slide 10" loading="lazy"><span>10 ⬇</span></a><a class="th" href="../marketing/carrossel-guia/slide-11.png" download="comanda-ai-funcionalidades-11.png"><img src="../marketing/carrossel-guia/slide-11.png" alt="Slide 11" loading="lazy"><span>11 ⬇</span></a></div>
+
+<h2>4. Imagens do Pendura Aí</h2>
+<p class="hint">Ótimo para bar de bairro, onde o fiado é comum.</p>
+<div class="grid"><a class="th" href="../marketing/carrossel-pendura/slide-1.png" download="comanda-ai-pendura-1.png"><img src="../marketing/carrossel-pendura/slide-1.png" alt="Slide 1" loading="lazy"><span>1 ⬇</span></a><a class="th" href="../marketing/carrossel-pendura/slide-2.png" download="comanda-ai-pendura-2.png"><img src="../marketing/carrossel-pendura/slide-2.png" alt="Slide 2" loading="lazy"><span>2 ⬇</span></a><a class="th" href="../marketing/carrossel-pendura/slide-3.png" download="comanda-ai-pendura-3.png"><img src="../marketing/carrossel-pendura/slide-3.png" alt="Slide 3" loading="lazy"><span>3 ⬇</span></a><a class="th" href="../marketing/carrossel-pendura/slide-4.png" download="comanda-ai-pendura-4.png"><img src="../marketing/carrossel-pendura/slide-4.png" alt="Slide 4" loading="lazy"><span>4 ⬇</span></a><a class="th" href="../marketing/carrossel-pendura/slide-5.png" download="comanda-ai-pendura-5.png"><img src="../marketing/carrossel-pendura/slide-5.png" alt="Slide 5" loading="lazy"><span>5 ⬇</span></a><a class="th" href="../marketing/carrossel-pendura/slide-6.png" download="comanda-ai-pendura-6.png"><img src="../marketing/carrossel-pendura/slide-6.png" alt="Slide 6" loading="lazy"><span>6 ⬇</span></a></div>
+
+<h2>5. Mensagens prontas</h2>
+<p class="hint">Troque o que está entre colchetes por algo do perfil do bar. Nunca mande a mesma mensagem igual para todo mundo.</p>
+<div class="msgs"><div class="msg"><b>1ª mensagem · Modelo A (caixa)</b><p>Fala, tudo certo? Curti muito o [narguilé / chopp / ambiente] de vocês 🔥 Pergunta rápida: no fim da noite, vocês fecham o caixa no caderninho ou já usam algum sistema?</p><button class="btn btn-ghost btn-sm" data-copy="Fala, tudo certo? Curti muito o [narguilé / chopp / ambiente] de vocês 🔥 Pergunta rápida: no fim da noite, vocês fecham o caixa no caderninho ou já usam algum sistema?">Copiar</button></div><div class="msg"><b>1ª mensagem · Modelo B (fiado)</b><p>Opa, tudo bem? Vi o perfil de vocês e fiquei curioso: aí no bar rola muito &quot;pendura aí que amanhã eu pago&quot;? 😅 Tô ajudando uns bares a controlar isso pelo celular.</p><button class="btn btn-ghost btn-sm" data-copy="Opa, tudo bem? Vi o perfil de vocês e fiquei curioso: aí no bar rola muito &quot;pendura aí que amanhã eu pago&quot;? 😅 Tô ajudando uns bares a controlar isso pelo celular.">Copiar</button></div><div class="msg"><b>1ª mensagem · Modelo C (lucro)</b><p>E aí, beleza? Pergunta de quem também é do ramo: vocês sabem quanto lucraram na última sexta, ou só descobrem no fim do mês? 🍻</p><button class="btn btn-ghost btn-sm" data-copy="E aí, beleza? Pergunta de quem também é do ramo: vocês sabem quanto lucraram na última sexta, ou só descobrem no fim do mês? 🍻">Copiar</button></div><div class="msg"><b>Quando responder</b><p>Entendi! Eu trabalho com o Comanda Aí, um app de caixa feito pra bar: comanda por mesa, Pix com QR Code, controle do fiado e o lucro da noite na hora, tudo no celular. Te mando um vídeo de 1 minuto mostrando?</p><button class="btn btn-ghost btn-sm" data-copy="Entendi! Eu trabalho com o Comanda Aí, um app de caixa feito pra bar: comanda por mesa, Pix com QR Code, controle do fiado e o lucro da noite na hora, tudo no celular. Te mando um vídeo de 1 minuto mostrando?">Copiar</button></div><div class="msg"><b>Depois do vídeo</b><p>Esse é o fluxo de uma noite inteira. Se fizer sentido, vocês testam 20 dias grátis e a gente instala e cadastra os produtos de vocês. Qual o melhor dia pra gente passar aí ou fazer uma chamada de 10 min?</p><button class="btn btn-ghost btn-sm" data-copy="Esse é o fluxo de uma noite inteira. Se fizer sentido, vocês testam 20 dias grátis e a gente instala e cadastra os produtos de vocês. Qual o melhor dia pra gente passar aí ou fazer uma chamada de 10 min?">Copiar</button></div><div class="msg"><b>Follow-up · 2 dias</b><p>Oi! Só passando pra ver se viu minha mensagem 🙂</p><button class="btn btn-ghost btn-sm" data-copy="Oi! Só passando pra ver se viu minha mensagem 🙂">Copiar</button></div><div class="msg"><b>Follow-up · 5 dias</b><p>Lembrei de vocês: sabia que um barril de 50 L rende uns 85 a 90 chopps? A diferença pra 100 é quase toda perda de espuma 🍺</p><button class="btn btn-ghost btn-sm" data-copy="Lembrei de vocês: sabia que um barril de 50 L rende uns 85 a 90 chopps? A diferença pra 100 é quase toda perda de espuma 🍺">Copiar</button></div><div class="msg"><b>Follow-up · 10 dias (despedida)</b><p>Vou parar de te incomodar! Se um dia quiser testar, é só me chamar aqui. Sucesso aí! 🍻</p><button class="btn btn-ghost btn-sm" data-copy="Vou parar de te incomodar! Se um dia quiser testar, é só me chamar aqui. Sucesso aí! 🍻">Copiar</button></div></div>
+
+<h2>6. Playbook completo</h2>
+<p class="hint">Passo a passo, objeções e rotina diária. Abre com a conta do Claude que recebeu o convite.</p>
+<a class="btn btn-ghost" href="https://claude.ai/artifact/GJXCkcMwggjp3VuxibW52y" target="_blank" rel="noopener">Abrir o playbook ↗</a>
+</div><div class="toast" id="toast">Copiado!</div>
+<script>
+  var base = new URL('../apresentacao/', location.href).href, $ = function (id) { return document.getElementById(id); };
+  function link() { var n = $('nome').value.trim(); return n ? base + '?por=' + encodeURIComponent(n) : base; }
+  function mostrar() { $('link').textContent = link(); $('abrir').href = link(); try { localStorage.setItem('kit_nome', $('nome').value); } catch (e) {} }
+  try { $('nome').value = localStorage.getItem('kit_nome') || ''; } catch (e) {}
+  $('nome').addEventListener('input', mostrar); mostrar();
+  function toast(t) { var el = $('toast'); el.textContent = t; el.classList.add('on'); setTimeout(function () { el.classList.remove('on'); }, 1500); }
+  function copiar(t) { if (navigator.clipboard) navigator.clipboard.writeText(t).then(function () { toast('Copiado!'); }, function () { toast('Segure o texto para copiar'); }); else toast('Segure o texto para copiar'); }
+  $('copiar-link').onclick = function () { copiar(link()); };
+  document.querySelectorAll('[data-copy]').forEach(function (b) { b.onclick = function () { copiar(b.getAttribute('data-copy')); }; });
+</script></body></html>
