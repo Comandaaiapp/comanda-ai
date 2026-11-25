@@ -1,3 +1,4 @@
+// © 2026 Comanda Aí. Todos os direitos reservados. Código proprietário (veja LICENSE).
 /**
  * Comanda Aí — controle de acesso por convite (grátis, no Google Planilhas).
  *

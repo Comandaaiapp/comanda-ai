@@ -1,5 +1,7 @@
 # Comanda Aí — versão de teste 0.3
 
+> © 2026 Comanda Aí. Todos os direitos reservados. Código proprietário, **não** é código aberto: é proibido copiar, modificar ou publicar em outro endereço sem autorização. Veja [LICENSE](LICENSE).
+
 App de caixa para bares que servem bebidas e **narguilé**. Roda em **um único aparelho** (o do caixa), funciona sem internet e **guarda tudo no próprio aparelho**. Não precisa de planilha.
 
 ## As 5 abas
